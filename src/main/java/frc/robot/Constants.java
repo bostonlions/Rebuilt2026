@@ -3,7 +3,9 @@ package frc.robot;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.*;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.*;
 import com.ctre.phoenix6.signals.*;
 import com.ctre.phoenix6.swerve.*;
@@ -365,6 +367,26 @@ public final class Constants {
                     odometryStandardDeviation, visionStandardDeviation, modules
                 );
             }
+        }
+    }
+
+    public static final class LauncherConstants {
+        public static final TalonFX motor = new TalonFX(-1, new CANBus("?")); // FIXME
+        public static final VelocityVoltage velocityVoltage = new VelocityVoltage(-1 /*FIXME*/).withSlot(0);
+        public static final TalonFXConfiguration configs = new TalonFXConfiguration()
+            .withSlot0(new Slot0Configs()
+                .withKS(0.1).withKV(0.12).withKP(0.11))
+            .withVoltage(new VoltageConfigs()
+                .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
+            .withTorqueCurrent(new TorqueCurrentConfigs()
+                .withPeakForwardTorqueCurrent(Amps.of(40)).withPeakReverseTorqueCurrent(Amps.of(-40)));
+        {   // Retry config apply up to 3 times, report if failure:
+            StatusCode status = StatusCode.StatusCodeNotInitialized;
+            for (int i = 0; i < 3; ++i) {
+                status = motor.getConfigurator().apply(configs);
+                if (status.isOK()) break;
+            }
+            if (!status.isOK()) System.out.println("Could not apply configs, error code: " + status.toString());
         }
     }
 }

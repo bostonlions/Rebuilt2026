@@ -5,4 +5,4 @@
   - [Base API](https://github.wpilib.org/allwpilib/docs/release/java/index.html)
 - CTRE (motors and sensors):
   - [Homepage](https://store.ctr-electronics.com/)
-  - [API](https://api.ctr-electronics.com/phoenix6/release/java/index.html)
+  - [API](https://api.ctr-electronics.com/phoenix6/stable/java/index.html)

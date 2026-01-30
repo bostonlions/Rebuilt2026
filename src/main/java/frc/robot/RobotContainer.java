@@ -11,10 +11,10 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-
-import frc.robot.subsystems.Drivetrain;
+import frc.robot.ControlBoard.CustomXboxController.Button;
 
 public final class RobotContainer {
     private final Telemetry logger = new Telemetry(Constants.SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
@@ -22,6 +22,10 @@ public final class RobotContainer {
     private final Drivetrain drivetrain = Drivetrain.getInstance();
 
     public RobotContainer() {
+        new Trigger(() -> controller.operator.getButton(Button.LB)).whileTrue(
+            new RunCommand(() -> Constants.LauncherConstants.motor.setControl(Constants.LauncherConstants.velocityVoltage))
+        );
+
         drivetrain.setDefaultCommand( // X is defined as forward according to WPILib convention, and Y is defined as to the left
             drivetrain.applyRequest(() -> // ...but our controller convention is y as forward, and x as to the right
                 Constants.SwerveConstants.drive.withVelocityX(controller.getSwerveTranslation().getY())

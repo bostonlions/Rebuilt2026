@@ -6,35 +6,31 @@ package frc.robot;
 
 import com.ctre.phoenix6.HootAutoReplay;
 
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 public class Robot extends TimedRobot {
+    private final RobotContainer m_robotContainer = new RobotContainer();
     private Command m_autonomousCommand;
-
-    private final RobotContainer m_robotContainer;
-
-    /* log and replay timestamp and joystick data */
-    private final HootAutoReplay m_timeAndJoystickReplay = new HootAutoReplay()
-        .withTimestampReplay()
-        .withJoystickReplay();
-
-    public Robot() {
-        m_robotContainer = new RobotContainer();
-    }
+    // Log and replay timestamp and joystick data:
+    private final HootAutoReplay m_timeAndJoystickReplay = new HootAutoReplay().withTimestampReplay().withJoystickReplay();
 
     @Override
     public void robotPeriodic() {
         m_timeAndJoystickReplay.update();
-        CommandScheduler.getInstance().run(); 
+        CommandScheduler.getInstance().run();
     }
 
     @Override
     public void disabledInit() {}
 
     @Override
-    public void disabledPeriodic() {}
+    public void disabledPeriodic() {
+        LimelightHelpers.SetRobotOrientation("limelight", 0/*FIXME: yaw deg from pigeon here*/, 0, 0, 0, 0, 0);
+        LimelightHelpers.SetIMUMode("limelight", 1);
+    }
 
     @Override
     public void disabledExit() {}
@@ -42,10 +38,7 @@ public class Robot extends TimedRobot {
     @Override
     public void autonomousInit() {
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
-
-        if (m_autonomousCommand != null) {
-            CommandScheduler.getInstance().schedule(m_autonomousCommand);
-        }
+        if (m_autonomousCommand != null) CommandScheduler.getInstance().schedule(m_autonomousCommand);
     }
 
     @Override
@@ -56,13 +49,15 @@ public class Robot extends TimedRobot {
 
     @Override
     public void teleopInit() {
-        if (m_autonomousCommand != null) {
-            CommandScheduler.getInstance().cancel(m_autonomousCommand);
-        }
+        if (m_autonomousCommand != null) CommandScheduler.getInstance().cancel(m_autonomousCommand);
     }
 
     @Override
-    public void teleopPeriodic() {}
+    public void teleopPeriodic() {
+        LimelightHelpers.SetRobotOrientation("limelight", 0/*FIXME: yaw deg from pigeon here*/, 0, 0, 0, 0, 0);
+        LimelightHelpers.SetIMUMode("limelight", 4);
+        // double[] visionMeasurement = NetworkTableInstance.getDefault().getTable("limelight").getEntry("botpose").getDoubleArray(new double[6]);
+    }
 
     @Override
     public void teleopExit() {}
