@@ -20,7 +20,7 @@ import com.ctre.phoenix6.HootAutoReplay;
 
 public class Robot extends TimedRobot {
     public static final Pigeon2 pigeon = new Pigeon2(Constants.Ports.PIGEON, Constants.Ports.CANBUS_DRIVE);
-    private final CANrange canRange = new CANrange(Constants.Ports.CANRANGE, Constants.Ports.CANBUS_DRIVE);
+    private final CANrange canRange = new CANrange(Constants.Ports.CANRANGE, Constants.SwerveConstants.kCANBus);
     private final RobotContainer m_robotContainer = new RobotContainer();
     private Command m_autonomousCommand;
     // Log and replay timestamp and joystick data:

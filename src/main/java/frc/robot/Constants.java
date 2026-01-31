@@ -112,13 +112,13 @@ public final class Constants {
         public static final int CANRANGE = 0;
         public static final int LAUNCHER = 14;
 
-        public static final int FL_DRIVE = 7;
-        public static final int FL_ROTATION = 10;
-        public static final int FL_CANCODER = 1;
+        public static final int FL_DRIVE = 5;
+        public static final int FL_ROTATION = 8;
+        public static final int FL_CANCODER = 3;
 
-        public static final int FR_DRIVE = 5;
-        public static final int FR_ROTATION = 8;
-        public static final int FR_CANCODER = 3;
+        public static final int FR_DRIVE = 7;
+        public static final int FR_ROTATION = 10;
+        public static final int FR_CANCODER = 1;
 
         public static final int BL_DRIVE = 9;
         public static final int BL_ROTATION = 12;
@@ -176,12 +176,10 @@ public final class Constants {
                     .withStatorCurrentLimitEnable(true)
             );
         private static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
-        // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
-        private static final Pigeon2Configuration pigeonConfigs = null;
 
         // CAN bus that the devices are located on;
         // All swerve devices must share the same CAN bus
-        public static final CANBus kCANBus = new CANBus("Big Justice", "./logs/example.hoot");
+        public static final CANBus kCANBus = new CANBus(Ports.CANBUS_DRIVE, "./logs/example.hoot");
 
         public static final double MaxAngularRate = RotationsPerSecond.of(0.3333).in(RadiansPerSecond);
         // Theoretical free speed (m/s) at 12 V applied output; this needs to be tuned to your individual robot
@@ -189,10 +187,10 @@ public final class Constants {
 
         // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
         // This may need to be tuned to your individual robot
-        private static final double kCoupleRatio = 3.5714285714285716;
+        private static final double kCoupleRatio = 3.5714285714285716; // TODO: tune this to our robot, and set encoder offsets below
 
-        private static final double kDriveGearRatio = 6.122448979591837;
-        private static final double kSteerGearRatio = 21.428571428571427;
+        private static final double kDriveGearRatio = 5.36;
+        private static final double kSteerGearRatio = 18.75;
 
         private static final Distance kWheelRadius = Inches.of(2);
 
@@ -216,13 +214,13 @@ public final class Constants {
         public static final SwerveDrivetrainConstants DrivetrainConstants = new SwerveDrivetrainConstants()
                 .withCANBusName(kCANBus.getName())
                 .withPigeon2Id(Ports.PIGEON)
-                .withPigeon2Configs(pigeonConfigs);
+                .withPigeon2Configs(new Pigeon2Configuration());
 
         private static final SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> ConstantCreator =
             new SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>()
                 .withDriveMotorGearRatio(kDriveGearRatio)
-                .withSteerMotorGearRatio(kSteerGearRatio)
                 .withCouplingGearRatio(kCoupleRatio)
+                .withSteerMotorGearRatio(kSteerGearRatio)
                 .withWheelRadius(kWheelRadius)
                 .withSteerMotorGains(steerGains)
                 .withDriveMotorGains(driveGains)
