@@ -5,13 +5,11 @@
 package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
-import static frc.robot.ControlBoard.CustomXboxController.Button;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.ControlBoard.CustomXboxController.Button;
@@ -23,8 +21,8 @@ public final class RobotContainer {
 
     public RobotContainer() {
         new Trigger(() -> controller.operator.getButton(Button.LB)).whileTrue(
-            new RunCommand(() -> Constants.LauncherConstants.motor.setControl(Constants.LauncherConstants.velocityVoltage))
-        );
+            new InstantCommand(() -> Constants.LauncherConstants.motor.setControl(Constants.LauncherConstants.velocityVoltage))
+        ).whileFalse(new InstantCommand(() -> Constants.LauncherConstants.motor.setControl(Constants.LauncherConstants.brake)));
 
         drivetrain.setDefaultCommand( // X is defined as forward according to WPILib convention, and Y is defined as to the left
             drivetrain.applyRequest(() -> // ...but our controller convention is y as forward, and x as to the right
@@ -38,9 +36,8 @@ public final class RobotContainer {
             drivetrain.applyRequest(() -> Constants.SwerveConstants.idle).ignoringDisable(true)
         );
 
-        new Trigger(() -> controller.operator.getButton(Button.A)).onTrue(
-            new InstantCommand(drivetrain::zeroGyro).ignoringDisable(true)
-        );
+        new Trigger(() -> controller.operator.getButton(Button.RB)).onTrue(
+            new InstantCommand(() -> Robot.pigeon.setYaw(0)).ignoringDisable(true));
 
         drivetrain.registerTelemetry(logger::telemeterize);
     }

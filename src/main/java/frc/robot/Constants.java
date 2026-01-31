@@ -5,6 +5,7 @@ import static edu.wpi.first.units.Units.*;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.*;
+import com.ctre.phoenix6.controls.StaticBrake;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.*;
 import com.ctre.phoenix6.signals.*;
@@ -104,10 +105,12 @@ public final class Constants {
         public static final String CANBUS_DRIVE = "Big Justice";
         public static final String CANBUS_OPS = "Baby Gronk";
 
-        public static final int DRIVER_CONTROL = 1;
-        public static final int OPERATOR_CONTROL = 0;
+        public static final int DRIVER_CONTROL = 0;
+        public static final int OPERATOR_CONTROL = 1;
 
         public static final int PIGEON = 13;
+        public static final int CANRANGE = 0;
+        public static final int LAUNCHER = 14;
 
         public static final int FL_DRIVE = 7;
         public static final int FL_ROTATION = 10;
@@ -371,8 +374,9 @@ public final class Constants {
     }
 
     public static final class LauncherConstants {
-        public static final TalonFX motor = new TalonFX(-1, new CANBus("?")); // FIXME
-        public static final VelocityVoltage velocityVoltage = new VelocityVoltage(-1 /*FIXME*/).withSlot(0);
+        public static final TalonFX motor = new TalonFX(Ports.LAUNCHER, new CANBus(Ports.CANBUS_DRIVE));
+        public static final VelocityVoltage velocityVoltage = new VelocityVoltage(30).withSlot(0);
+        public static final StaticBrake brake = new StaticBrake();
         public static final TalonFXConfiguration configs = new TalonFXConfiguration()
             .withSlot0(new Slot0Configs()
                 .withKS(0.1).withKV(0.12).withKP(0.11))

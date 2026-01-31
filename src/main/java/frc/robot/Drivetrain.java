@@ -56,12 +56,6 @@ public class Drivetrain extends TunerSwerveDrivetrain implements Subsystem {
         );
     }
 
-    public void zeroGyro() {
-        // FIXME
-        // mPigeon.setYaw(0);
-        // mPigeon.setPitch(0);
-    }
-
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
         new SysIdRoutine.Config(
