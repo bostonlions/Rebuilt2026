@@ -185,10 +185,7 @@ public final class Constants {
         // Theoretical free speed (m/s) at 12 V applied output; this needs to be tuned to your individual robot
         public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.04);
 
-        // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
-        // This may need to be tuned to your individual robot
-        private static final double kCoupleRatio = 3.5714285714285716; // TODO: tune this to our robot, and set encoder offsets below
-
+        private static final double kCoupleRatio = 3.145;
         private static final double kDriveGearRatio = 5.36;
         private static final double kSteerGearRatio = 18.75;
 
@@ -240,28 +237,28 @@ public final class Constants {
                 .withDriveFrictionVoltage(kDriveFrictionVoltage);
 
         // Front Left
-        private static final Angle kFrontLeftEncoderOffset = Rotations.of(-0.182373046875);
+        private static final Angle kFrontLeftEncoderOffset = Rotations.of(-0.2495);
         private static final boolean kFrontLeftSteerMotorInverted = true;
         private static final boolean kFrontLeftEncoderInverted = false;
         private static final Distance kFrontLeftXPos = Inches.of(12);
         private static final Distance kFrontLeftYPos = Inches.of(12);
 
         // Front Right
-        private static final Angle kFrontRightEncoderOffset = Rotations.of(-0.281005859375);
+        private static final Angle kFrontRightEncoderOffset = Rotations.of(-1.7925);
         private static final boolean kFrontRightSteerMotorInverted = true;
         private static final boolean kFrontRightEncoderInverted = false;
         private static final Distance kFrontRightXPos = Inches.of(12);
         private static final Distance kFrontRightYPos = Inches.of(-12);
 
         // Back Left
-        private static final Angle kBackLeftEncoderOffset = Rotations.of(0.4990234375);
+        private static final Angle kBackLeftEncoderOffset = Rotations.of(0.1065);
         private static final boolean kBackLeftSteerMotorInverted = true;
         private static final boolean kBackLeftEncoderInverted = false;
         private static final Distance kBackLeftXPos = Inches.of(-12);
         private static final Distance kBackLeftYPos = Inches.of(12);
 
         // Back Right
-        private static final Angle kBackRightEncoderOffset = Rotations.of(0.050048828125);
+        private static final Angle kBackRightEncoderOffset = Rotations.of(-0.5705);
         private static final boolean kBackRightSteerMotorInverted = true;
         private static final boolean kBackRightEncoderInverted = false;
         private static final Distance kBackRightXPos = Inches.of(-12);
