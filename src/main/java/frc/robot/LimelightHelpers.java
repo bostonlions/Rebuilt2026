@@ -457,8 +457,6 @@ public class LimelightHelpers {
             targets_Barcode = new LimelightTarget_Barcode[0];
 
         }
-
-
     }
 
     /**
@@ -658,7 +656,6 @@ public class LimelightHelpers {
             }
         }
     }
-
 
     private static ObjectMapper mapper;
 
@@ -1005,7 +1002,6 @@ public class LimelightHelpers {
     public static String[] getLimelightNTStringArray(String tableName, String entryName) {
         return getLimelightNTTableEntry(tableName, entryName).getStringArray(new String[0]);
     }
-
 
     public static URL getLimelightURLString(String tableName, String request) {
         String urlString = "http://" + sanitizeName(tableName) + ".local:5807/" + request;
@@ -1401,10 +1397,8 @@ public class LimelightHelpers {
      * @return
      */
     public static Pose2d getBotPose2d_wpiRed(String limelightName) {
-
         double[] result = getBotPose_wpiRed(limelightName);
         return toPose2D(result);
-
     }
 
     /**
@@ -1435,10 +1429,8 @@ public class LimelightHelpers {
      * @return
      */
     public static Pose2d getBotPose2d(String limelightName) {
-
         double[] result = getBotPose(limelightName);
         return toPose2D(result);
-
     }
    
     /**
@@ -1512,7 +1504,6 @@ public class LimelightHelpers {
     public static void setStreamMode_PiPSecondary(String limelightName) {
         setLimelightNTDouble(limelightName, "stream", 2);
     }
-
 
     /**
      * Sets the crop window for the camera. The crop window in the UI must be completely open.
@@ -1615,7 +1606,6 @@ public class LimelightHelpers {
     public static void SetIMUAssistAlpha(String limelightName, double alpha) {
         setLimelightNTDouble(limelightName, "imuassistalpha_set", alpha);
     }
-
     
     /**
      * Configures the throttle value. Set to 100-200 while disabled to reduce thermal output/temperature.
@@ -1750,7 +1740,6 @@ public class LimelightHelpers {
      * @return LimelightResults object containing all current target data
      */
     public static LimelightResults getLatestResults(String limelightName) {
-
         long start = System.nanoTime();
         LimelightHelpers.LimelightResults results = new LimelightHelpers.LimelightResults();
         if (mapper == null) {
@@ -1794,5 +1783,42 @@ public class LimelightHelpers {
         for (int i = 0; i < 10; i++) {
             PortForwarder.add(basePort + i, ip, 5800 + i);
         }
+    }
+
+    /** poseIndex = -1 for combined uncertainty of all poses */
+    private static double getRobotPoseItem(int poseIndex, double bpA[], double bpB[], double bpTargetSpaceA[], double bpTargetSpaceB[]) {
+        final double aesq = Math.pow(Math.pow(bpTargetSpaceA[0], 2) + Math.pow(bpTargetSpaceA[1], 2) + Math.pow(bpTargetSpaceA[2], 2), 2) / 10000;
+        final double besq = Math.pow(Math.pow(bpTargetSpaceB[0], 2) + Math.pow(bpTargetSpaceB[1], 2) + Math.pow(bpTargetSpaceB[2], 2), 2) / 10000;
+
+        if (aesq == 0) { // this essentially is true if limelight-a has no target
+            if (poseIndex == -1) return Math.sqrt(besq);
+            return bpB[poseIndex];
+        }
+        if (besq == 0) { // this essentially is true if limelight-b has no target
+            if (poseIndex == -1) return Math.sqrt(aesq);
+            return bpA[poseIndex];
+        }
+
+        final double sumInverseSquareError = (1 / aesq) + (1 / besq);
+        if (poseIndex == -1) return 1 / Math.sqrt(sumInverseSquareError);
+
+        return ((
+            bpA[poseIndex] / aesq
+        ) + (
+            bpB[poseIndex] / besq
+        )) / (sumInverseSquareError);
+    }
+
+    public static double[] getRobotPose() {
+        NetworkTable tableA = NetworkTableInstance.getDefault().getTable("limelight-a");
+        NetworkTable tableB = NetworkTableInstance.getDefault().getTable("limelight-b");
+        double bpA[] = tableA.getEntry("botpose").getDoubleArray(new double[6]);
+        double bpB[] = tableB.getEntry("botpose").getDoubleArray(new double[6]);
+        double bptsA[] = tableA.getEntry("botpose_targetspace").getDoubleArray(new double[6]);
+        double bptsB[] = tableB.getEntry("botpose_targetspace").getDoubleArray(new double[6]);
+        return new double[]{getRobotPoseItem(0, bpA, bpB, bptsA, bptsB),
+            getRobotPoseItem(1, bpA, bpB, bptsA, bptsB), getRobotPoseItem(2, bpA, bpB, bptsA, bptsB),
+            getRobotPoseItem(3, bpA, bpB, bptsA, bptsB), getRobotPoseItem(4, bpA, bpB, bptsA, bptsB),
+            getRobotPoseItem(5, bpA, bpB, bptsA, bptsB), getRobotPoseItem(-1, bpA, bpB, bptsA, bptsB)};
     }
 }
