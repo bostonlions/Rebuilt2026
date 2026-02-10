@@ -29,10 +29,11 @@ public class Robot extends TimedRobot {
         CommandScheduler.getInstance().run();
 
         var pose = LimelightHelpers.getRobotPose();
-        m_robotContainer.drivetrain.addVisionMeasurement(new Pose2d(pose[0], pose[1], new Rotation2d(pose[5])), (
-            NetworkTableInstance.getDefault().getTable("limelight-a").getEntry("ts_nt").getDouble(-1) +
-            NetworkTableInstance.getDefault().getTable("limelight-b").getEntry("ts_nt").getDouble(-1)
-        ) / 2000000, MatBuilder.fill(Nat.N3(), Nat.N1(), pose[6], pose[6], 0.001));
+        if (pose[6] != 0) // this statement is true iff we have a measurement
+            m_robotContainer.drivetrain.addVisionMeasurement(new Pose2d(pose[0], pose[1], new Rotation2d(pose[5])), (
+                NetworkTableInstance.getDefault().getTable("limelight-a").getEntry("ts_nt").getDouble(-1) +
+                NetworkTableInstance.getDefault().getTable("limelight-b").getEntry("ts_nt").getDouble(-1)
+            ) / 2000000, MatBuilder.fill(Nat.N3(), Nat.N1(), pose[6], pose[6], 0.001));
     }
 
     @Override
