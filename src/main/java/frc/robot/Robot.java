@@ -5,7 +5,11 @@
 package frc.robot;
 
 import edu.wpi.first.units.Units;
+import edu.wpi.first.math.MatBuilder;
+import edu.wpi.first.math.Nat;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -23,6 +27,12 @@ public class Robot extends TimedRobot {
     public void robotPeriodic() {
         m_timeAndJoystickReplay.update();
         CommandScheduler.getInstance().run();
+
+        var pose = LimelightHelpers.getRobotPose();
+        m_robotContainer.drivetrain.addVisionMeasurement(new Pose2d(pose[0], pose[1], new Rotation2d(pose[5])), (
+            NetworkTableInstance.getDefault().getTable("limelight-a").getEntry("ts_nt").getDouble(-1) +
+            NetworkTableInstance.getDefault().getTable("limelight-b").getEntry("ts_nt").getDouble(-1)
+        ) / 2000000, MatBuilder.fill(Nat.N3(), Nat.N1(), pose[6], pose[6], 0.001));
     }
 
     @Override

@@ -22,7 +22,7 @@ public final class RobotContainer {
     private final CANrange canRange = new CANrange(Constants.Ports.CANRANGE, Constants.SwerveConstants.kCANBus);
     private final Telemetry logger = new Telemetry(Constants.SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
     private final ControlBoard controller = ControlBoard.getInstance();
-    private final Drivetrain drivetrain = Drivetrain.getInstance();
+    public final Drivetrain drivetrain = Drivetrain.getInstance();
 
     public RobotContainer() {
         Robot.pigeon.getConfigurator().apply(new Pigeon2Configuration());
@@ -49,12 +49,9 @@ public final class RobotContainer {
 
         drivetrain.registerTelemetry(logger::telemeterize);
 
-        new Trigger(() -> controller.operator.getButton(Button.B)).onTrue(new InstantCommand(() -> {
-            System.out.println("CANrange distance: " + canRange.getDistance().getValueAsDouble());
-            
-            var pose = LimelightHelpers.getRobotPose();
-            System.out.println(pose[0] + ", " + pose[1] + ", " + pose[2] + "; " + pose[6]);
-        }));
+        new Trigger(() -> controller.operator.getButton(Button.B)).onTrue(new InstantCommand(() ->
+            System.out.println("CANrange distance: " + canRange.getDistance().getValueAsDouble())
+        ));
     }
 
     public Command getAutonomousCommand() {
