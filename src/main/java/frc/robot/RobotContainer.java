@@ -11,11 +11,14 @@ import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.hardware.CANrange;
 
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+
 import frc.robot.ControlBoard.CustomXboxController.Button;
 
 public final class RobotContainer {
@@ -25,8 +28,11 @@ public final class RobotContainer {
     public final Drivetrain drivetrain = Drivetrain.getInstance();
 
     public RobotContainer() {
-        Robot.pigeon.getConfigurator().apply(new Pigeon2Configuration());
         canRange.getConfigurator().apply(new CANrangeConfiguration());
+        Robot.pigeon.getConfigurator().apply(new Pigeon2Configuration());
+        DriverStation.getAlliance().ifPresentOrElse(color -> Robot.pigeon.setYaw(color == Alliance.Blue ? 0 : 180), () -> {
+            throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
+        });
 
         new Trigger(() -> controller.operator.getButton(Button.LB)).whileTrue(
             new InstantCommand(() -> Constants.LauncherConstants.motor.setControl(Constants.LauncherConstants.velocityVoltage))
@@ -44,9 +50,6 @@ public final class RobotContainer {
             drivetrain.applyRequest(() -> Constants.SwerveConstants.idle).ignoringDisable(true)
         );
 
-        new Trigger(() -> controller.operator.getButton(Button.RB)).onTrue(
-            new InstantCommand(() -> Robot.pigeon.setYaw(0)).ignoringDisable(true));
-
         drivetrain.registerTelemetry(logger::telemeterize);
 
         new Trigger(() -> controller.operator.getButton(Button.B)).onTrue(new InstantCommand(() ->
@@ -55,7 +58,7 @@ public final class RobotContainer {
     }
 
     public Command getAutonomousCommand() {
-        // Simple drive forward auton:
+        // Simple drive forward auton for an example:
         return Commands.sequence(
             // Reset our field centric heading to match the robot
             // facing away from our alliance station wall (0 deg).

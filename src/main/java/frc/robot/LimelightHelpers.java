@@ -33,7 +33,7 @@ import edu.wpi.first.net.PortForwarder;
  * LimelightHelpers provides static methods and classes for interfacing with Limelight vision cameras in FRC.
  * This library supports all Limelight features including AprilTag tracking, Neural Networks, and standard color/retroreflective tracking.
  */
-public class LimelightHelpers {
+public final class LimelightHelpers {
     private static final Map<String, DoubleArrayEntry> doubleArrayEntries = new ConcurrentHashMap<>();
 
     /**
@@ -1783,42 +1783,5 @@ public class LimelightHelpers {
         for (int i = 0; i < 10; i++) {
             PortForwarder.add(basePort + i, ip, 5800 + i);
         }
-    }
-
-    /** poseIndex = -1 for combined uncertainty of all poses */
-    private static double getRobotPoseItem(int poseIndex, double bpA[], double bpB[], double bpTargetSpaceA[], double bpTargetSpaceB[]) {
-        final double aesq = Math.pow(Math.pow(bpTargetSpaceA[0], 2) + Math.pow(bpTargetSpaceA[1], 2) + Math.pow(bpTargetSpaceA[2], 2), 2) / 10000;
-        final double besq = Math.pow(Math.pow(bpTargetSpaceB[0], 2) + Math.pow(bpTargetSpaceB[1], 2) + Math.pow(bpTargetSpaceB[2], 2), 2) / 10000;
-
-        if (aesq == 0) { // this essentially is true if limelight-a has no target
-            if (poseIndex == -1) return Math.sqrt(besq);
-            return bpB[poseIndex];
-        }
-        if (besq == 0) { // this essentially is true if limelight-b has no target
-            if (poseIndex == -1) return Math.sqrt(aesq);
-            return bpA[poseIndex];
-        }
-
-        final double sumInverseSquareError = (1 / aesq) + (1 / besq);
-        if (poseIndex == -1) return 1 / Math.sqrt(sumInverseSquareError);
-
-        return ((
-            bpA[poseIndex] / aesq
-        ) + (
-            bpB[poseIndex] / besq
-        )) / (sumInverseSquareError);
-    }
-
-    public static double[] getRobotPose() {
-        NetworkTable tableA = NetworkTableInstance.getDefault().getTable("limelight-a");
-        NetworkTable tableB = NetworkTableInstance.getDefault().getTable("limelight-b");
-        double bpA[] = tableA.getEntry("botpose").getDoubleArray(new double[6]);
-        double bpB[] = tableB.getEntry("botpose").getDoubleArray(new double[6]);
-        double bptsA[] = tableA.getEntry("botpose_targetspace").getDoubleArray(new double[6]);
-        double bptsB[] = tableB.getEntry("botpose_targetspace").getDoubleArray(new double[6]);
-        return new double[]{getRobotPoseItem(0, bpA, bpB, bptsA, bptsB),
-            getRobotPoseItem(1, bpA, bpB, bptsA, bptsB), getRobotPoseItem(2, bpA, bpB, bptsA, bptsB),
-            getRobotPoseItem(3, bpA, bpB, bptsA, bptsB), getRobotPoseItem(4, bpA, bpB, bptsA, bptsB),
-            getRobotPoseItem(5, bpA, bpB, bptsA, bptsB), getRobotPoseItem(-1, bpA, bpB, bptsA, bptsB)};
     }
 }
