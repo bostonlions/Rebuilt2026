@@ -1,6 +1,6 @@
-//LimelightHelpers v1.13 (REQUIRES LLOS 2026.0 OR LATER)
+// LimelightHelpers v1.13 (REQUIRES LLOS 2026.0 OR LATER)
 
-package frc.robot;
+package frc;
 
 import edu.wpi.first.networktables.DoubleArrayEntry;
 import edu.wpi.first.networktables.NetworkTable;
