@@ -21,6 +21,8 @@ import static edu.wpi.first.units.Units.Amps;
 
 public final class Launcher implements Subsystem {
     private static Launcher instance = null;
+    private final Slot0Configs gains = new Slot0Configs()
+        .withKP(4.8).withKD(0.1).withKV(0.12).withKS(0.2).withKA(0.01); // TODO: tune this, maybe different for each motor
     private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBus);
     private final CANcoder launchCAN = new CANcoder(Ports.LAUNCH_CANCODER, kCANBus);
     private final TalonFX pitchMotor = new TalonFX(Ports.PITCH_MOTOR, kCANBus);
@@ -35,8 +37,7 @@ public final class Launcher implements Subsystem {
 
     private Launcher() {
         launchMotor.getConfigurator().apply(new TalonFXConfiguration()
-            .withSlot0(new Slot0Configs()
-                .withKS(0.1).withKV(0.12).withKP(0.11))
+            .withSlot0(gains)
             .withVoltage(new VoltageConfigs()
                 .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
             .withTorqueCurrent(new TorqueCurrentConfigs()
@@ -45,10 +46,12 @@ public final class Launcher implements Subsystem {
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
                 .withFeedbackRemoteSensorID(launchCAN.getDeviceID())));
         pitchMotor.getConfigurator().apply(new TalonFXConfiguration()
+            .withSlot0(gains)
             .withFeedback(new FeedbackConfigs()
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
                 .withFeedbackRemoteSensorID(pitchCAN.getDeviceID())));
         yawMotor.getConfigurator().apply(new TalonFXConfiguration()
+            .withSlot0(gains)
             .withFeedback(new FeedbackConfigs()
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
                 .withFeedbackRemoteSensorID(yawCAN.getDeviceID())));
