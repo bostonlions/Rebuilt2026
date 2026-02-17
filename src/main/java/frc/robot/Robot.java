@@ -44,24 +44,24 @@ public final class Robot extends TimedRobot {
         CommandScheduler.getInstance().run();
 
         NetworkTable tableA = NetworkTableInstance.getDefault().getTable("limelight-a");
-        double[] poseA = tableA.getEntry("botpose").getDoubleArray(new double[6]);
+        double[] poseA = tableA.getEntry("botpose_wpiblue").getDoubleArray(new double[6]);
         double[] bptsA = tableA.getEntry("botpose_targetspace").getDoubleArray(new double[6]);
         double errorA = Math.sqrt(Math.pow(Math.pow(bptsA[0], 2) + Math.pow(bptsA[1], 2) + Math.pow(bptsA[2], 2), 2) / 10000);
         if (poseA[0] != 0) // essentially this statement is true iff we have a measurement
             m_robotContainer.drivetrain.addVisionMeasurement(
                 new Pose2d(poseA[0], poseA[1], new Rotation2d(poseA[5])),
-                tableA.getEntry("ts_nt").getDouble(-1),
+                tableA.getEntry("ts_nt").getDouble(Double.NaN),
                 MatBuilder.fill(Nat.N3(), Nat.N1(), errorA, errorA, 0.001)
             );
 
         NetworkTable tableB = NetworkTableInstance.getDefault().getTable("limelight-b");
-        double[] poseB = tableB.getEntry("botpose").getDoubleArray(new double[6]);
+        double[] poseB = tableB.getEntry("botpose_wpiblue").getDoubleArray(new double[6]);
         double[] bptsB = tableB.getEntry("botpose_targetspace").getDoubleArray(new double[6]);
         double errorB = Math.sqrt(Math.pow(Math.pow(bptsB[0], 2) + Math.pow(bptsB[1], 2) + Math.pow(bptsB[2], 2), 2) / 10000);
         if (poseB[0] != 0) // essentially this statement is true iff we have a measurement
             m_robotContainer.drivetrain.addVisionMeasurement(
                 new Pose2d(poseB[0], poseB[1], new Rotation2d(poseB[5])),
-                tableB.getEntry("ts_nt").getDouble(-1),
+                tableB.getEntry("ts_nt").getDouble(Double.NaN),
                 MatBuilder.fill(Nat.N3(), Nat.N1(), errorB, errorB, 0.001)
             );
     }
@@ -133,11 +133,11 @@ public final class Robot extends TimedRobot {
         public static final int CANRANGE = 0;
 
         public static final int LAUNCHER = -1; // FIXME
-        public static final int LAUNCH_CANCODER = -1; // FIXME
         public static final int PITCH_MOTOR = -1; // FIXME
         public static final int PITCH_CANCODER = -1; //FIXME
         public static final int YAW_MOTOR = -1; // FIXME
-        public static final int YAW_CANCODER = -1; // FIXME
+        public static final int YAW_CANCODER_10 = -1; // FIXME
+        public static final int YAW_CANCODER_11 = -1; // FIXME
 
         public static final int FL_DRIVE = 5;
         public static final int FL_ROTATION = 8;

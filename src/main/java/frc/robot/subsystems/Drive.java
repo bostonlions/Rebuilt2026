@@ -47,7 +47,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
 import frc.robot.Robot;
 
-public final class Drive {
+public final class Drive implements Subsystem {
     public static final class Drivetrain extends SwerveConstants.TunerSwerveDrivetrain implements Subsystem {
         private static final double kSimLoopPeriod = 0.004; // 4 ms
         private Notifier m_simNotifier = null;

@@ -26,7 +26,6 @@ import static edu.wpi.first.units.Units.MetersPerSecond;
 
 import frc.Telemetry;
 import frc.robot.Robot.Ports;
-import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Drive.Drivetrain;
 import frc.robot.subsystems.Drive.SwerveConstants;
 
@@ -62,7 +61,7 @@ public final class RobotContainer {
         ));
     }
 
-    public Command getAutonomousCommand() {
+    public Command getAutonomousCommand() { // TODO: zero the pitch motor in autonomous by pitching as far down as possible and then zeroing motor
         // Simple drive forward auton for an example:
         return Commands.sequence(
             // Reset our field centric heading to match the robot
@@ -132,7 +131,7 @@ public final class RobotContainer {
 
                 double scaled_x = MathUtil.applyDeadband(forwardAxis, Math.abs(deadband_vector.getX()));
                 double scaled_y = MathUtil.applyDeadband(strafeAxis, Math.abs(deadband_vector.getY()));
-                return new Translation2d(scaled_x, scaled_y).times(Drive.SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond) / 7);
+                return new Translation2d(scaled_x, scaled_y).times(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond) / 7);
             }
         }
 
@@ -142,7 +141,7 @@ public final class RobotContainer {
             rotAxis *= speedFactor;
 
             if (Math.abs(rotAxis) < kSwerveDeadband) return 0.0;
-            return Drive.SwerveConstants.MaxAngularRate *
+            return SwerveConstants.MaxAngularRate *
                 (rotAxis - (Math.signum(rotAxis) * kSwerveDeadband)) / (1 - kSwerveDeadband);
         }
 
