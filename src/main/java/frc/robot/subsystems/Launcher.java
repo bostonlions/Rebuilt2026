@@ -12,9 +12,14 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
+import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
 
+import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -30,6 +35,11 @@ import static edu.wpi.first.units.Units.Amps;
 public final class Launcher implements Subsystem {
     private static Launcher instance = null;
     private Translation3d shootTarget = null; // updated in launcher constructor based on prescence of alliance color
+    private final Translation2d turretPosRobotRel = new Translation2d(-0.033147, 0.1394968); // coordinates are in meters following wpiblue coordinate convention
+    private final double kAirRes = 0.01; // unit is inverse meters; this is quadratic coefficient of air resistance scaling equation
+    private final double projectionTime = 0.1; // unit is seconds; this is the time into the future to project robot motion for shooting
+    private final double vScale = 1.2; // (used elsewhere besides just the below line)
+    private final double vMin = vScale * 7.7;
     private final MotionMagicVoltage motionRequest = new MotionMagicVoltage(null);
     private final Slot0Configs gains = new Slot0Configs()
         .withKP(4.8).withKD(0.1).withKV(0.12).withKS(0.2).withKA(0.01); // TODO: tune this, maybe different for each motor
@@ -97,7 +107,20 @@ public final class Launcher implements Subsystem {
         return this;
     }
 
-    public void shoot(Pose2d robotPosition/*(x,y,yaw)*/) {
-        this.setSpeed(shootTarget.getX()).setPitch(shootTarget.getY()).setYaw(shootTarget.getZ()); // FIXME
+    private Pair<Double, Double> targetVector() {
+        SwerveDriveState state = Drive.Drivetrain.getInstance().getState();
+        double rvx = state.Speeds.vxMetersPerSecond;
+        double rvy = state.Speeds.vyMetersPerSecond;
+        double yaw = state.Pose.getRotation().getRadians();
+        ChassisSpeeds speedsFieldCentric = new ChassisSpeeds(rvx * Math.cos(yaw) - rvy * Math.sin(yaw),
+            rvx * Math.sin(yaw) + rvy * Math.cos(yaw), state.Speeds.omegaRadiansPerSecond);
+        Pose2d currentPose = state.Pose;
+        Pose2d finalPose = new Pose2d(currentPose.getX() + speedsFieldCentric.vxMetersPerSecond * projectionTime,
+            currentPose.getY() + speedsFieldCentric.vyMetersPerSecond * projectionTime,
+            new Rotation2d(currentPose.getRotation().getRadians() + speedsFieldCentric.omegaRadiansPerSecond * projectionTime));
+    }
+
+    public void shoot() {
+        this.setSpeed(shootTarget.getX()).setPitch(shootTarget.getY()).setYaw(shootTarget.getZ() * kAirRes * vMin * projectionTime); // FIXME
     }
 }
