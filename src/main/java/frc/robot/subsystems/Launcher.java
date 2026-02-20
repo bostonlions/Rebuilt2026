@@ -107,20 +107,34 @@ public final class Launcher implements Subsystem {
         return this;
     }
 
-    private Pair<Double, Double> targetVector() {
+    private Pair<Translation2d, Translation2d> targetVectorAndSpeeds() {
         SwerveDriveState state = Drive.Drivetrain.getInstance().getState();
+        Pose2d currentPose = state.Pose;
         double rvx = state.Speeds.vxMetersPerSecond;
         double rvy = state.Speeds.vyMetersPerSecond;
-        double yaw = state.Pose.getRotation().getRadians();
+        double yaw = currentPose.getRotation().getRadians();
         ChassisSpeeds speedsFieldCentric = new ChassisSpeeds(rvx * Math.cos(yaw) - rvy * Math.sin(yaw),
             rvx * Math.sin(yaw) + rvy * Math.cos(yaw), state.Speeds.omegaRadiansPerSecond);
-        Pose2d currentPose = state.Pose;
-        Pose2d finalPose = new Pose2d(currentPose.getX() + speedsFieldCentric.vxMetersPerSecond * projectionTime,
+        Pose2d finalRobotPose = new Pose2d(currentPose.getX() + speedsFieldCentric.vxMetersPerSecond * projectionTime,
             currentPose.getY() + speedsFieldCentric.vyMetersPerSecond * projectionTime,
             new Rotation2d(currentPose.getRotation().getRadians() + speedsFieldCentric.omegaRadiansPerSecond * projectionTime));
+        yaw = finalRobotPose.getRotation().getRadians();
+        Pose2d turretPose = new Pose2d(finalRobotPose.getX() + turretPosRobotRel.getX() * Math.cos(yaw) -
+            turretPosRobotRel.getY() * Math.sin(yaw), finalRobotPose.getY() + turretPosRobotRel.getX() * Math.sin(yaw) +
+            turretPosRobotRel.getY() * Math.cos(yaw), finalRobotPose.getRotation());
+        Translation2d shootTarget2d = new Translation2d(shootTarget.getMeasureX(), shootTarget.getMeasureY());
+        double turretVx = speedsFieldCentric.vxMetersPerSecond - speedsFieldCentric.omegaRadiansPerSecond *
+            (turretPosRobotRel.getX() * Math.sin(yaw) + turretPosRobotRel.getY() * Math.cos(yaw));
+        double turretVy = speedsFieldCentric.vyMetersPerSecond + speedsFieldCentric.omegaRadiansPerSecond *
+            (turretPosRobotRel.getX() * Math.cos(yaw) - turretPosRobotRel.getY() * Math.sin(yaw));
+
+        final double tRadians = Math.PI / 2 - shootTarget2d.getAngle().getRadians() - yaw;
+        final double vR = turretVx * Math.cos(tRadians + yaw) + turretVy * Math.sin(tRadians + yaw);
+        final double vT = turretVy * Math.cos(tRadians + yaw) - turretVx * Math.sin(tRadians + yaw);
+        return new Pair<>(new Translation2d(turretPose.getTranslation().minus(shootTarget2d).getNorm(),
+            new Rotation2d(tRadians)), new Translation2d(vR, vT));
     }
 
     public void shoot() {
-        this.setSpeed(shootTarget.getX()).setPitch(shootTarget.getY()).setYaw(shootTarget.getZ() * kAirRes * vMin * projectionTime); // FIXME
     }
 }
