@@ -23,7 +23,7 @@ import com.ctre.phoenix6.HootAutoReplay;
 
 public final class Robot extends TimedRobot {
     public static final Pigeon2 pigeon = new Pigeon2(Ports.PIGEON, Ports.CANBUS_DRIVE);
-    public static final CANBus kCANBus = new CANBus(Ports.CANBUS_DRIVE, "./logs/example.hoot");
+    public static final CANBus kCANBus = new CANBus(Ports.CANBUS_OPS, "./logs/example.hoot");
     private final RobotContainer m_robotContainer = new RobotContainer();
     private final HootAutoReplay m_timeAndJoystickReplay = new HootAutoReplay().withTimestampReplay().withJoystickReplay();
     private Command m_autonomousCommand;
@@ -103,7 +103,13 @@ public final class Robot extends TimedRobot {
     }
 
     @Override
-    public void teleopPeriodic() {}
+    public void teleopPeriodic() {
+        RobotContainer.climber.move(
+            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y),
+            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.X),
+            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.RIGHT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y)
+        );
+    }
 
     @Override
     public void teleopExit() {}
@@ -131,6 +137,10 @@ public final class Robot extends TimedRobot {
 
         public static final int PIGEON = 13;
         public static final int CANRANGE = 0;
+
+        public static final int LOWER_HOOK_MOTOR = 31;
+        public static final int UPPER_HOOK_MOTOR = 34;
+        public static final int ELEVATOR_MOTOR = 35;
 
         public static final int LAUNCHER = -1; // FIXME
         public static final int PITCH_MOTOR = -1; // FIXME
