@@ -56,6 +56,7 @@ public final class Launcher implements Subsystem {
     private final double vScale = 1.2; // (used elsewhere besides just the below line)
     private final double vMin = vScale * Math.sqrt(2 * 9.80665 * 3); // speed to make ball launch 3m high fired straight up
     private final double launchToTurretSpeedScale = Double.NaN; // FIXME
+    private final StaticBrake brake = new StaticBrake();
     private final MotionMagicVoltage motionRequest = new MotionMagicVoltage(0);
     private final DutyCycleOut feederMotionRequest = new DutyCycleOut(1);
     private final Slot0Configs gains = new Slot0Configs()
@@ -226,13 +227,13 @@ public final class Launcher implements Subsystem {
     }
 
     private boolean setFeeder(boolean on) {
-        return feeder_spinner.setControl(on ? feederMotionRequest : new StaticBrake()).isOK() &&
-            feeder_roller.setControl(on ? feederMotionRequest : new StaticBrake()).isOK();
+        return feeder_spinner.setControl(on ? feederMotionRequest : brake).isOK() &&
+            feeder_roller.setControl(on ? feederMotionRequest : brake).isOK();
     }
 
     public void setMode (Mode newMode) {
         if (mode == newMode) return; else
-        if (newMode == Mode.OFF) if (launchMotor.setControl(new StaticBrake()).isOK())
+        if (newMode == Mode.OFF) if (launchMotor.setControl(brake).isOK())
         if (yawMotor.setControl(motionRequest).isOK())
         if (pitchMotor.setControl(motionRequest.withPosition(pitchBounds.getFirst() / 2 / Math.PI)).isOK()) {
             mode = newMode; return;
