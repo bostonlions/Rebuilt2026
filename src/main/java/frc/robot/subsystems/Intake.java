@@ -18,14 +18,15 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import static edu.wpi.first.units.Units.Rotations;
 
 import static frc.robot.Robot.kCANBus;
+import frc.robot.Robot.Ports;
 
 public final class Intake implements edu.wpi.first.wpilibj2.command.Subsystem {
-    private final TalonFX extendMotor = new TalonFX(-1, kCANBus); // FIXME
-    private final TalonFX spinMotor = new TalonFX(-1, kCANBus); // FIXME
+    private final TalonFX extendMotor = new TalonFX(Ports.INTAKE_EXTEND, kCANBus);
+    private final TalonFX spinMotor = new TalonFX(Ports.INTAKE_SPIN, kCANBus);
     private final StaticBrake brake = new StaticBrake();
     private final DutyCycleOut spinRequest = new DutyCycleOut(1);
-    private final MotionMagicVoltage in = new MotionMagicVoltage(-1); // FIXME
-    private final MotionMagicVoltage out = new MotionMagicVoltage(-1); // FIXME
+    private final MotionMagicVoltage in = new MotionMagicVoltage(0); // TODO: zero cancoder at 0" of the mechanism
+    private final MotionMagicVoltage out = new MotionMagicVoltage(11.25);
 
     public Intake() {
         edu.wpi.first.wpilibj2.command.CommandScheduler.getInstance().registerSubsystem(this);
@@ -63,7 +64,9 @@ public final class Intake implements edu.wpi.first.wpilibj2.command.Subsystem {
                 .withInverted(InvertedValue.Clockwise_Positive))
             .withFeedback(new FeedbackConfigs()
                 .withFeedbackRemoteSensorID(-1) // FIXME
-                .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)));
+                .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
+                .withRotorToSensorRatio(3 * 48 / 17.0)
+                .withSensorToMechanismRatio(17.0 / (48 * 5))));
         setExtension(false);
     }
 

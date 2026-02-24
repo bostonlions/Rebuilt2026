@@ -104,11 +104,12 @@ public final class Robot extends TimedRobot {
 
     @Override
     public void teleopPeriodic() {
-        RobotContainer.climber.move(
-            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y),
-            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.X),
-            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.RIGHT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y)
-        );
+        // // FOR TESTING:
+        // RobotContainer.climber.move(
+        //     RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y),
+        //     RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.X),
+        //     RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.RIGHT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y)
+        // );
     }
 
     @Override
@@ -128,39 +129,64 @@ public final class Robot extends TimedRobot {
     @Override
     public void simulationPeriodic() {}
 
+    /**
+     * Central CAN ID and port configuration.
+     * <ul>
+     *   <li><b>CANBUS_DRIVE ("Big Justice")</b>: Pigeon2, swerve drive + rotation + CANcoders (FL, FR, BL, BR)</li>
+     *   <li><b>CANBUS_OPS ("Baby Gronk")</b>: Climber (hooks, elevator), CANrange, launcher, pitch/yaw, intake, feeders</li>
+     * </ul>
+     * Set any value marked FIXME to your actual device ID. Avoid duplicate IDs on the same bus.
+     */
     public static final class Ports {
         public static final String CANBUS_DRIVE = "Big Justice";
         public static final String CANBUS_OPS = "Baby Gronk";
 
+        /** Driver = 0, Operator = 1 (USB/DH port) */
         public static final int DRIVER_CONTROL = 0;
         public static final int OPERATOR_CONTROL = 1;
 
-        public static final int PIGEON = 13;
+        // ----- CANBUS_OPS (Baby Gronk) -----
         public static final int CANRANGE = 0;
 
+        /** Climber: lower hook, upper hook, elevator */
         public static final int LOWER_HOOK_MOTOR = 31;
         public static final int UPPER_HOOK_MOTOR = 34;
         public static final int ELEVATOR_MOTOR = 35;
 
-        public static final int LAUNCHER = -1; // FIXME
-        public static final int PITCH_MOTOR = -1; // FIXME
-        public static final int PITCH_CANCODER = -1; //FIXME
-        public static final int YAW_MOTOR = -1; // FIXME
-        public static final int YAW_CANCODER_10 = -1; // FIXME
-        public static final int YAW_CANCODER_11 = -1; // FIXME
+        /** Launcher: main flywheel */
+        public static final int LAUNCHER = 14; // FIXME: set to your launcher motor CAN ID
+        public static final int PITCH_MOTOR = 50; 
+        public static final int PITCH_CANCODER = 38; 
+        public static final int YAW_MOTOR = 40;
+        public static final int YAW_CANCODER_10 = 52;
+        public static final int YAW_CANCODER_11 = 54;
+        /** Feeder (indexer) motors */
+        public static final int FEEDER_SPINNER = -1; // FIXME
+        public static final int FEEDER_ROLLER = 42;
 
+        /** Intake: extend and spin */
+        public static final int INTAKE_EXTEND = 36;
+        public static final int INTAKE_SPIN = 44; 
+
+        // ----- CANBUS_DRIVE (Big Justice) -----
+        public static final int PIGEON = 13;
+
+        /** Front Left swerve module */
         public static final int FL_DRIVE = 5;
         public static final int FL_ROTATION = 8;
         public static final int FL_CANCODER = 3;
 
+        /** Front Right */
         public static final int FR_DRIVE = 7;
         public static final int FR_ROTATION = 10;
         public static final int FR_CANCODER = 1;
 
+        /** Back Left */
         public static final int BL_DRIVE = 9;
         public static final int BL_ROTATION = 12;
         public static final int BL_CANCODER = 2;
 
+        /** Back Right */
         public static final int BR_DRIVE = 6;
         public static final int BR_ROTATION = 11;
         public static final int BR_CANCODER = 4;

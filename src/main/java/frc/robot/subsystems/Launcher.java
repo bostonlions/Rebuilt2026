@@ -70,8 +70,8 @@ public final class Launcher implements Subsystem {
     private final TalonFX yawMotor = new TalonFX(Ports.YAW_MOTOR, kCANBus);
     private final CANcoder yaw10cancoder = new CANcoder(Ports.YAW_CANCODER_10, kCANBus);
     private final CANcoder yaw11cancoder = new CANcoder(Ports.YAW_CANCODER_11, kCANBus);
-    private final TalonFX feeder_spinner = new TalonFX(-1, kCANBus); // FIXME
-    private final TalonFX feeder_roller = new TalonFX(-1, kCANBus); // FIXME
+    private final TalonFX feeder_spinner = new TalonFX(Ports.FEEDER_SPINNER, kCANBus);
+    private final TalonFX feeder_roller = new TalonFX(Ports.FEEDER_ROLLER, kCANBus);
     private final TalonFXConfiguration feederMotorConfig = new TalonFXConfiguration()
         .withCurrentLimits(new CurrentLimitsConfigs()
             .withSupplyCurrentLimitEnable(true)

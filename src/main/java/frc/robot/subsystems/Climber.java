@@ -122,23 +122,23 @@ public final class Climber implements edu.wpi.first.wpilibj2.command.Subsystem {
                 && elevatorMotor.setControl(motion.withPosition(elevatorPositions.get(Position.Top))).isOK() ?
                 StatusCode.OK : StatusCode.GeneralError;
         } else if (request == Request.L3 && this.request == Request.Ready) {
-            upperHookMotor.setControl(motion.withPosition(upperHookPositions.get(Position.Bottom)));
-            elevatorMotor.setControl(motion.withPosition(elevatorPositions.get(Position.Bottom)));
+            new InstantCommand(() -> {
+                upperHookMotor.setControl(motion.withPosition(upperHookPositions.get(Position.Bottom)));
+                elevatorMotor.setControl(motion.withPosition(elevatorPositions.get(Position.Bottom)));
+            }, this).andThen(
             new WaitUntilCommand(
                 () -> upperHookMotor.getClosedLoopError().getValue() < UpperClosedLoopErrorTolerance &&
                 elevatorMotor.getClosedLoopError().getValue() < ElevatorClosedLoopErrorTolerance
-            ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Grab))), this)
-                .schedule();
+            ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Grab))), this),
             new WaitUntilCommand(() -> lowerHookMotor.getClosedLoopError().getValue() < lowerClosedLoopErrorTolerance)
                 .andThen(() -> {
                     elevatorMotor.setControl(motion.withPosition(elevatorPositions.get(Position.Top)));
                     upperHookMotor.setControl(motion.withPosition(upperHookPositions.get(Position.Top)));
-                }, this).schedule();
+                }, this),
             new WaitUntilCommand(
                 () -> upperHookMotor.getClosedLoopError().getValue() < UpperClosedLoopErrorTolerance &&
                     elevatorMotor.getClosedLoopError().getValue() < ElevatorClosedLoopErrorTolerance
-            ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Clinch))), this)
-                .schedule();
+            ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Clinch))), this),
             new WaitUntilCommand(() -> lowerHookMotor.getClosedLoopError().getValue() < lowerClosedLoopErrorTolerance)
                 .andThen(new ParallelCommandGroup(
                     new InstantCommand(() -> {
@@ -148,22 +148,31 @@ public final class Climber implements edu.wpi.first.wpilibj2.command.Subsystem {
                     new WaitUntilCommand(
                         () -> elevatorMotor.getPosition().getValueAsDouble() + upperHookMotor.getPosition().getValueAsDouble() < -1 // FIXME
                     ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Stow))), this)
-                )).schedule();
+                )),
             new WaitUntilCommand(
                 () -> upperHookMotor.getClosedLoopError().getValue() < UpperClosedLoopErrorTolerance &&
                 lowerHookMotor.getClosedLoopError().getValue() < lowerClosedLoopErrorTolerance &&
                 elevatorMotor.getClosedLoopError().getValue() < ElevatorClosedLoopErrorTolerance
-            ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Grab))), this)
-                .schedule();
+            ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Grab))), this),
             new WaitUntilCommand(() -> lowerHookMotor.getClosedLoopError().getValue() < lowerClosedLoopErrorTolerance)
                 .andThen(() -> {
                     elevatorMotor.setControl(motion.withPosition(elevatorPositions.get(Position.Top)));
                     upperHookMotor.setControl(motion.withPosition(upperHookPositions.get(Position.Top)));
-                }, this).schedule();
+                }, this),
             new WaitUntilCommand(
                 () -> upperHookMotor.getClosedLoopError().getValue() < UpperClosedLoopErrorTolerance &&
                 elevatorMotor.getClosedLoopError().getValue() < ElevatorClosedLoopErrorTolerance
-            ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Clinch))), this).schedule();
+            ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Clinch))), this),
+            new WaitUntilCommand(() -> lowerHookMotor.getClosedLoopError().getValue() < lowerClosedLoopErrorTolerance)
+                .andThen(new ParallelCommandGroup(
+                    new InstantCommand(() -> {
+                        upperHookMotor.setControl(motion.withPosition(upperHookPositions.get(Position.Bottom)));
+                        elevatorMotor.setControl(motion.withPosition(elevatorPositions.get(Position.Bottom)));
+                    }, this),
+                    new WaitUntilCommand(
+                        () -> elevatorMotor.getPosition().getValueAsDouble() + upperHookMotor.getPosition().getValueAsDouble() < -1 // FIXME
+                    ).andThen(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Stow))), this)
+                ))).schedule();
             return StatusCode.OK;
         } else return StatusCode.GeneralError;
     }
