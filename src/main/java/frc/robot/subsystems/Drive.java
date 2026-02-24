@@ -427,29 +427,30 @@ public final class Drive implements Subsystem {
                 .withSteerFrictionVoltage(kSteerFrictionVoltage)
                 .withDriveFrictionVoltage(kDriveFrictionVoltage);
 
+        // Swerve CANcoder offsets (set 2026-02-23 from Phoenix Tuner AbsolutePosition)
         // Front Left
-        private static final Angle kFrontLeftEncoderOffset = Rotations.of(1); // FIXME
+        private static final Angle kFrontLeftEncoderOffset = Rotations.of(0.0305);
         private static final boolean kFrontLeftSteerMotorInverted = true;
         private static final boolean kFrontLeftEncoderInverted = false;
         private static final Distance kFrontLeftXPos = Inches.of(12);
         private static final Distance kFrontLeftYPos = Inches.of(12);
 
         // Front Right
-        private static final Angle kFrontRightEncoderOffset = Rotations.of(1); // FIXME
+        private static final Angle kFrontRightEncoderOffset = Rotations.of(0.4313);
         private static final boolean kFrontRightSteerMotorInverted = true;
         private static final boolean kFrontRightEncoderInverted = false;
         private static final Distance kFrontRightXPos = Inches.of(12);
         private static final Distance kFrontRightYPos = Inches.of(-12);
 
         // Back Left
-        private static final Angle kBackLeftEncoderOffset = Rotations.of(1); // FIXME
+        private static final Angle kBackLeftEncoderOffset = Rotations.of(0.3935);
         private static final boolean kBackLeftSteerMotorInverted = true;
         private static final boolean kBackLeftEncoderInverted = false;
         private static final Distance kBackLeftXPos = Inches.of(-12);
         private static final Distance kBackLeftYPos = Inches.of(12);
 
         // Back Right
-        private static final Angle kBackRightEncoderOffset = Rotations.of(1); // FIXME
+        private static final Angle kBackRightEncoderOffset = Rotations.of(0.1201);
         private static final boolean kBackRightSteerMotorInverted = true;
         private static final boolean kBackRightEncoderInverted = false;
         private static final Distance kBackRightXPos = Inches.of(-12);
