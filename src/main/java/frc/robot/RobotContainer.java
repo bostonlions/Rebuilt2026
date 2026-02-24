@@ -24,6 +24,7 @@ import frc.Telemetry;
 import frc.robot.Robot.Ports;
 import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.Intake;
+import frc.robot.subsystems.Launcher;
 import frc.robot.subsystems.Drive.Drivetrain;
 import frc.robot.subsystems.Drive.SwerveConstants;
 
@@ -33,6 +34,11 @@ public final class RobotContainer {
     public final Drivetrain drivetrain = Drivetrain.getInstance();
     public static/*private*/ final Climber climber = new Climber();
     private static final Intake intake = new Intake();
+    private static final Launcher launcher = Launcher.getInstance();
+
+    // Test toggles
+    private boolean launcherTestEnabled = false;
+    private boolean feederRollerTestEnabled = false;
 
     public RobotContainer() {
         Robot.pigeon.getConfigurator().apply(new com.ctre.phoenix6.configs.Pigeon2Configuration());
@@ -58,6 +64,25 @@ public final class RobotContainer {
             .onTrue(new InstantCommand(() -> intake.toggleSpin(), intake));
         new Trigger(() -> controller.operator.getTrigger(ControlBoard.CustomXboxController.Side.LEFT))
             .onTrue(new InstantCommand(() -> intake.toggleExtension(), intake));
+
+        // Operator Xbox controller A button tests FEEDER_SPINNER at 25% duty (hold to run)
+        new Trigger(() -> controller.getFeederSpinnerTestButton())
+            .onTrue(new InstantCommand(() -> launcher.setFeederTest(true), launcher))
+            .onFalse(new InstantCommand(() -> launcher.setFeederTest(false), launcher));
+
+        // Operator Xbox controller Y button toggles LAUNCHER at 10% duty
+        new Trigger(() -> controller.getLauncherToggleButton())
+            .onTrue(new InstantCommand(() -> {
+                launcherTestEnabled = !launcherTestEnabled;
+                launcher.setLauncherTest(launcherTestEnabled);
+            }, launcher));
+
+        // Operator Xbox controller X button toggles FEEDER_ROLLER at 75% duty
+        new Trigger(() -> controller.getFeederRollerToggleButton())
+            .onTrue(new InstantCommand(() -> {
+                feederRollerTestEnabled = !feederRollerTestEnabled;
+                launcher.setFeederRollerTest(feederRollerTestEnabled);
+            }, launcher));
     }
 
     public Command getAutonomousCommand() { // TODO: zero the pitch motor in autonomous by pitching as far down as possible and then zeroing motor
@@ -95,6 +120,21 @@ public final class RobotContainer {
             operator = new CustomXboxController(Ports.OPERATOR_CONTROL);
             speedFactor = ControllerConstants.kInputClipping;
             kSwerveDeadband = ControllerConstants.stickDeadband;
+        }
+
+        public/*private*/ boolean getFeederSpinnerTestButton() {
+            // Operator Xbox controller A button
+            return operator.getButton(CustomXboxController.Button.A);
+        }
+
+        public/*private*/ boolean getFeederRollerToggleButton() {
+            // Operator Xbox controller X button
+            return operator.getButton(CustomXboxController.Button.X);
+        }
+
+        public/*private*/ boolean getLauncherToggleButton() {
+            // Operator Xbox controller Y button
+            return operator.getButton(CustomXboxController.Button.Y);
         }
 
         private Translation2d getSwerveTranslation() {

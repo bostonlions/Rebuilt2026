@@ -59,6 +59,10 @@ public final class Launcher implements Subsystem {
     private final StaticBrake brake = new StaticBrake();
     private final MotionMagicVoltage motionRequest = new MotionMagicVoltage(0);
     private final DutyCycleOut feederMotionRequest = new DutyCycleOut(1);
+    // Separate test speeds: spinner 25%, roller 75%, launcher 10%
+    private final DutyCycleOut feederSpinnerTestRequest = new DutyCycleOut(0.25);
+    private final DutyCycleOut feederRollerTestRequest  = new DutyCycleOut(0.25);
+    private final DutyCycleOut launcherTestRequest      = new DutyCycleOut(0.15);
     private final Slot0Configs gains = new Slot0Configs()
         .withKP(4.8).withKD(0.1).withKV(0.12).withKS(0.2).withKA(0.01); // TODO: tune this, maybe different for each motor
     private final MotionMagicConfigs motionMagicConfigs = new MotionMagicConfigs()
@@ -229,6 +233,21 @@ public final class Launcher implements Subsystem {
     private boolean setFeeder(boolean on) {
         return feeder_spinner.setControl(on ? feederMotionRequest : brake).isOK() &&
             feeder_roller.setControl(on ? feederMotionRequest : brake).isOK();
+    }
+
+    /** Test helper: spin only the feeder spinner at 25% duty while on is true. */
+    public void setFeederTest(boolean on) {
+        feeder_spinner.setControl(on ? feederSpinnerTestRequest : brake);
+    }
+
+    /** Test helper: spin only the feeder roller at 75% duty while on is true. */
+    public void setFeederRollerTest(boolean on) {
+        feeder_roller.setControl(on ? feederRollerTestRequest : brake);
+    }
+
+    /** Test helper: spin only the launcher at 10% duty while on is true. */
+    public void setLauncherTest(boolean on) {
+        launchMotor.setControl(on ? launcherTestRequest : brake);
     }
 
     public void setMode (Mode newMode) {
