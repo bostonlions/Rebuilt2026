@@ -145,23 +145,20 @@ public final class Robot extends TimedRobot {
         public static final int DRIVER_CONTROL = 0;
         public static final int OPERATOR_CONTROL = 1;
 
-        // ----- CANBUS_OPS (Baby Gronk) -----
-        public static final int CANRANGE = 0;
-
         /** Climber: lower hook, upper hook, elevator */
         public static final int LOWER_HOOK_MOTOR = 31;
         public static final int UPPER_HOOK_MOTOR = 34;
         public static final int ELEVATOR_MOTOR = 35;
 
         /** Launcher: main flywheel */
-        public static final int LAUNCHER = 14; // FIXME: set to your launcher motor CAN ID
+        public static final int LAUNCHER = 14;
         public static final int PITCH_MOTOR = 50; 
         public static final int PITCH_CANCODER = 38; 
         public static final int YAW_MOTOR = 40;
         public static final int YAW_CANCODER_10 = 52;
         public static final int YAW_CANCODER_11 = 54;
         /** Feeder (indexer) motors */
-        public static final int FEEDER_SPINNER = -1; // FIXME
+        public static final int FEEDER_SPINNER = 41;
         public static final int FEEDER_ROLLER = 42;
 
         /** Intake: extend and spin */

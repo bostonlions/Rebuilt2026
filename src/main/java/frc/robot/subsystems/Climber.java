@@ -1,7 +1,6 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.StatusCode;
-import com.ctre.phoenix6.configs.CANrangeConfiguration;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
@@ -9,7 +8,6 @@ import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.MotionMagicVelocityDutyCycle;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
-import com.ctre.phoenix6.hardware.CANrange;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -43,7 +41,7 @@ public final class Climber implements edu.wpi.first.wpilibj2.command.Subsystem {
     private final double UpperClosedLoopErrorTolerance = Millimeters.of(5).magnitude() / (24.0/45.0 *
         Inches.of(0.375).in(Millimeters));
     private final double ElevatorClosedLoopErrorTolerance = 1.714555555555555555555555555555555555555555555555555555555555;
-    private final CANrange canRange = new CANrange(Ports.CANRANGE, kCANBus);
+    // private final CANrange canRange = new CANrange(Ports.CANRANGE, kCANBus);
     private final Map<Position, Angle> elevatorPositions = Map.of( // rotations are motor rotations;
         Position.Bottom, Rotations.of(-1),                         // 15 elevator motor rotations = 4 cm height change
         Position.L1, Rotations.of(-1),      //FIXME
@@ -63,7 +61,7 @@ public final class Climber implements edu.wpi.first.wpilibj2.command.Subsystem {
 
     public Climber() {
         edu.wpi.first.wpilibj2.command.CommandScheduler.getInstance().registerSubsystem(this);
-        canRange.getConfigurator().apply(new CANrangeConfiguration());
+        // canRange.getConfigurator().apply(new CANrangeConfiguration());
         lowerHookMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withSlot0(new Slot0Configs().withKP(0.025))
             .withMotionMagic(new MotionMagicConfigs()
