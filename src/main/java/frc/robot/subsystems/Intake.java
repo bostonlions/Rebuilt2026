@@ -1,72 +1,79 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
+import com.ctre.phoenix6.configs.MagnetSensorConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.MotionMagicVoltage;
+import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
 import com.ctre.phoenix6.controls.StaticBrake;
+import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.signals.SensorDirectionValue;
 
 import static edu.wpi.first.units.Units.Rotations;
 
-import static frc.robot.Robot.kCANBus;
+import static frc.robot.Robot.kCANBusJustice;
+
 import frc.robot.Robot.Ports;
 
 public final class Intake implements edu.wpi.first.wpilibj2.command.Subsystem {
-    private final TalonFX extendMotor = new TalonFX(Ports.INTAKE_EXTEND, kCANBus);
-    private final TalonFX spinMotor = new TalonFX(Ports.INTAKE_SPIN, kCANBus);
+    private final TalonFX extendMotor = new TalonFX(Ports.INTAKE_EXTEND, kCANBusJustice);
+    private final CANcoder extendCANcoder = new CANcoder(15, kCANBusJustice);
+    private final TalonFX spinMotor = new TalonFX(Ports.INTAKE_SPIN, kCANBusJustice);
     private final StaticBrake brake = new StaticBrake();
-    private final DutyCycleOut spinRequest = new DutyCycleOut(1);
-    private final MotionMagicVoltage in = new MotionMagicVoltage(0); // TODO: zero cancoder at 0" of the mechanism
-    private final MotionMagicVoltage out = new MotionMagicVoltage(11.25);
+    private final DutyCycleOut spinRequest = new DutyCycleOut(0.4);
+    private final MotionMagicDutyCycle in = new MotionMagicDutyCycle(0.055);
+    private final MotionMagicDutyCycle out = new MotionMagicDutyCycle(0.86);
 
     public Intake() {
         edu.wpi.first.wpilibj2.command.CommandScheduler.getInstance().registerSubsystem(this);
+        extendCANcoder.getConfigurator().apply(new CANcoderConfiguration().withMagnetSensor(new MagnetSensorConfigs()
+            .withMagnetOffset(0.018555)
+            .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
+            .withAbsoluteSensorDiscontinuityPoint(1)));
         spinMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withCurrentLimits(new CurrentLimitsConfigs()
                 .withSupplyCurrentLimitEnable(true)
                 .withSupplyCurrentLimit(20)
                 .withSupplyCurrentLowerLimit(10)
                 .withSupplyCurrentLowerTime(0.1))
-            .withSlot0(new Slot0Configs()
-                .withKP(0.6)
-                .withKI(0.0)
-                .withKD(0.0)
-                .withKV(0.0))
+            .withSlot0(new Slot0Configs().withKP(0.6))
             .withMotorOutput(new MotorOutputConfigs()
                 .withNeutralMode(NeutralModeValue.Brake)
                 .withInverted(InvertedValue.Clockwise_Positive)));
         extendMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withCurrentLimits(new CurrentLimitsConfigs()
                 .withSupplyCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(20.)
-                .withSupplyCurrentLowerLimit(10.)
+                .withSupplyCurrentLimit(20)
+                .withSupplyCurrentLowerLimit(10)
                 .withSupplyCurrentLowerTime(0.1))
             .withSlot0(new Slot0Configs()
                 .withKP(1.65)
                 .withKI(0.04)
-                .withKD(0.012))
+                .withKD(0.012)
+                .withKV(0.12)
+                .withKA(0.01)
+                .withKS(0.05))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(8.3)
-                .withMotionMagicExpo_kA(0.3)
-             // .withMotionMagicJerk(1600)
-                .withMotionMagicAcceleration(1.5))
+                .withMotionMagicCruiseVelocity(4)
+                .withMotionMagicAcceleration(4))
             .withMotorOutput(new MotorOutputConfigs()
                 .withNeutralMode(NeutralModeValue.Brake)
                 .withInverted(InvertedValue.Clockwise_Positive))
             .withFeedback(new FeedbackConfigs()
-                .withFeedbackRemoteSensorID(-1) // FIXME
+                .withFeedbackRemoteSensorID(extendCANcoder.getDeviceID())
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
-                .withRotorToSensorRatio(3 * 48 / 17.0)
-                .withSensorToMechanismRatio(17.0 / (48 * 5))));
+                .withRotorToSensorRatio(3 * 48 / 16.0)
+                .withSensorToMechanismRatio(1)));
         setExtension(false);
     }
 
@@ -86,6 +93,8 @@ public final class Intake implements edu.wpi.first.wpilibj2.command.Subsystem {
     }
 
     public StatusCode toggleExtension() {
+        // System.out.println("CAN" + extendCANcoder.getAbsolutePosition().getValueAsDouble() + "; motor: " + extendMotor.getPosition().getValueAsDouble());
+        // return extendMotor.setControl(new DutyCycleOut(0.05));
         return setExtension(!extended);
     }
 

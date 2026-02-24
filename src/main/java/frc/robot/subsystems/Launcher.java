@@ -35,7 +35,7 @@ import edu.wpi.first.math.MathUtil;
 
 import frc.robot.Robot.Ports;
 
-import static frc.robot.Robot.kCANBus;
+import static frc.robot.Robot.kCANBusJustice;
 
 import static edu.wpi.first.units.Units.Volts;
 import static edu.wpi.first.units.Units.Amps;
@@ -55,7 +55,7 @@ public final class Launcher implements Subsystem {
     private final double projectionTime = 0.1; // unit is seconds; this is the time into the future to project robot motion for shooting
     private final double vScale = 1.2; // (used elsewhere besides just the below line)
     private final double vMin = vScale * Math.sqrt(2 * 9.80665 * 3); // speed to make ball launch 3m high fired straight up
-    private final double launchToTurretSpeedScale = Double.NaN; // FIXME
+    private final double launchToTurretSpeedScale = Double.NaN; // FIXME -- launch motor revs * resulting fly wheel revs  * flywheel circumference / 2  ???
     private final StaticBrake brake = new StaticBrake();
     private final MotionMagicVoltage motionRequest = new MotionMagicVoltage(0);
     private final DutyCycleOut feederMotionRequest = new DutyCycleOut(1);
@@ -65,13 +65,13 @@ public final class Launcher implements Subsystem {
         .withMotionMagicCruiseVelocity(60)
         .withMotionMagicAcceleration(100)
         .withMotionMagicJerk(1000);
-    private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBus);
-    private final TalonFX pitchMotor = new TalonFX(Ports.PITCH_MOTOR, kCANBus);
-    private final TalonFX yawMotor = new TalonFX(Ports.YAW_MOTOR, kCANBus);
-    private final CANcoder yaw10cancoder = new CANcoder(Ports.YAW_CANCODER_10, kCANBus);
-    private final CANcoder yaw11cancoder = new CANcoder(Ports.YAW_CANCODER_11, kCANBus);
-    private final TalonFX feeder_spinner = new TalonFX(Ports.FEEDER_SPINNER, kCANBus);
-    private final TalonFX feeder_roller = new TalonFX(Ports.FEEDER_ROLLER, kCANBus);
+    private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBusJustice);
+    private final TalonFX pitchMotor = new TalonFX(Ports.PITCH_MOTOR, kCANBusJustice);
+    private final TalonFX yawMotor = new TalonFX(Ports.YAW_MOTOR, kCANBusJustice);
+    private final CANcoder yaw10cancoder = new CANcoder(Ports.YAW_CANCODER_10, kCANBusJustice);
+    private final CANcoder yaw11cancoder = new CANcoder(Ports.YAW_CANCODER_11, kCANBusJustice);
+    private final TalonFX feeder_spinner = new TalonFX(Ports.FEEDER_SPINNER, kCANBusJustice);
+    private final TalonFX feeder_roller = new TalonFX(Ports.FEEDER_ROLLER, kCANBusJustice);
     private final TalonFXConfiguration feederMotorConfig = new TalonFXConfiguration()
         .withCurrentLimits(new CurrentLimitsConfigs()
             .withSupplyCurrentLimitEnable(true)

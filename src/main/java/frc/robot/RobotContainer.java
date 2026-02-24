@@ -9,7 +9,9 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.GenericHID;
@@ -21,6 +23,7 @@ import static edu.wpi.first.units.Units.MetersPerSecond;
 import frc.Telemetry;
 import frc.robot.Robot.Ports;
 import frc.robot.subsystems.Climber;
+import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Drive.Drivetrain;
 import frc.robot.subsystems.Drive.SwerveConstants;
 
@@ -29,6 +32,7 @@ public final class RobotContainer {
     public static/*private*/ final ControlBoard controller = ControlBoard.getInstance();
     public final Drivetrain drivetrain = Drivetrain.getInstance();
     public static/*private*/ final Climber climber = new Climber();
+    private static final Intake intake = new Intake();
 
     public RobotContainer() {
         Robot.pigeon.getConfigurator().apply(new com.ctre.phoenix6.configs.Pigeon2Configuration());
@@ -49,6 +53,11 @@ public final class RobotContainer {
         );
 
         drivetrain.registerTelemetry(logger::telemeterize);
+
+        new Trigger(() -> controller.operator.getTrigger(ControlBoard.CustomXboxController.Side.RIGHT))
+            .onTrue(new InstantCommand(() -> intake.toggleSpin(), intake));
+        new Trigger(() -> controller.operator.getTrigger(ControlBoard.CustomXboxController.Side.LEFT))
+            .onTrue(new InstantCommand(() -> intake.toggleExtension(), intake));
     }
 
     public Command getAutonomousCommand() { // TODO: zero the pitch motor in autonomous by pitching as far down as possible and then zeroing motor

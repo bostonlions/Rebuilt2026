@@ -24,7 +24,8 @@ import static edu.wpi.first.units.Units.Rotations;
 
 import frc.robot.Robot.Ports;
 
-import static frc.robot.Robot.kCANBus;
+import static frc.robot.Robot.kCANBusGronk;
+import static frc.robot.Robot.kCANBusJustice;
 import static frc.robot.RobotContainer.ControlBoard.CustomXboxController.scaleWithDeadband;
 
 import java.util.Map;
@@ -33,10 +34,10 @@ public final class Climber implements edu.wpi.first.wpilibj2.command.Subsystem {
     private enum Position {Clinch, Grab, Stow, Bottom, L1, Top}
     private enum Request {Stow, Ready, L1, L3}
     private Request request = Request.Ready;
-    private final MotionMagicVoltage motion = new MotionMagicVoltage(null);
-    private final TalonFX lowerHookMotor = new TalonFX(Ports.LOWER_HOOK_MOTOR, kCANBus);
-    private final TalonFX upperHookMotor = new TalonFX(Ports.UPPER_HOOK_MOTOR, kCANBus);
-    private final TalonFX elevatorMotor = new TalonFX(Ports.ELEVATOR_MOTOR, kCANBus);
+    private final MotionMagicVoltage motion = new MotionMagicVoltage(0);
+    private final TalonFX lowerHookMotor = new TalonFX(Ports.LOWER_HOOK_MOTOR, kCANBusGronk);
+    private final TalonFX upperHookMotor = new TalonFX(Ports.UPPER_HOOK_MOTOR, kCANBusJustice);
+    private final TalonFX elevatorMotor = new TalonFX(Ports.ELEVATOR_MOTOR, kCANBusJustice);
     private final double lowerClosedLoopErrorTolerance = 0.006944444444444444444444444444444444444444444444444444444444444;
     private final double UpperClosedLoopErrorTolerance = Millimeters.of(5).magnitude() / (24.0/45.0 *
         Inches.of(0.375).in(Millimeters));
@@ -69,7 +70,7 @@ public final class Climber implements edu.wpi.first.wpilibj2.command.Subsystem {
                 .withMotionMagicJerk(1000)
                 .withMotionMagicCruiseVelocity(30))
             .withFeedback(new FeedbackConfigs()
-                .withFeedbackRemoteSensorID(-1) // FIXME
+                .withFeedbackRemoteSensorID(14)
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
                 .withSensorToMechanismRatio(1)
                 .withRotorToSensorRatio(5 * 9 * 72 / 20.0)));
@@ -99,13 +100,13 @@ public final class Climber implements edu.wpi.first.wpilibj2.command.Subsystem {
     public StatusCode request(final Request request) {
         if (request == Request.Stow && this.request == Request.Ready) {
             new ParallelCommandGroup(
-                new InstantCommand(() -> elevatorMotor.setControl(motion.withPosition(elevatorPositions.get(Position.Bottom))), this)
+                new InstantCommand(() -> elevatorMotor.setControl(motion.withPosition(elevatorPositions.get(Position.Bottom))))
                     .andThen(
                         new WaitCommand(2.5),
                         new InstantCommand(() ->
                             upperHookMotor.setControl(motion.withPosition(upperHookPositions.get(Position.Stow))), this)
                     ),
-                new InstantCommand(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Stow))), this)
+                new InstantCommand(() -> lowerHookMotor.setControl(motion.withPosition(lowerHookPositions.get(Position.Stow))))
             ).schedule(); return StatusCode.OK;
         } else if (request == Request.Ready && this.request == Request.Stow) {
             return upperHookMotor.setControl(motion.withPosition(upperHookPositions.get(Position.Top))).isOK()

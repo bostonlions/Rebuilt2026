@@ -23,7 +23,8 @@ import com.ctre.phoenix6.HootAutoReplay;
 
 public final class Robot extends TimedRobot {
     public static final Pigeon2 pigeon = new Pigeon2(Ports.PIGEON, Ports.CANBUS_DRIVE);
-    public static final CANBus kCANBus = new CANBus(Ports.CANBUS_OPS, "./logs/example.hoot");
+    public static final CANBus kCANBusGronk = new CANBus(Ports.CANBUS_DRIVE, "./logs/example.hoot");
+    public static final CANBus kCANBusJustice = new CANBus(Ports.CANBUS_OPS, "./logs/example.hoot");
     private final RobotContainer m_robotContainer = new RobotContainer();
     private final HootAutoReplay m_timeAndJoystickReplay = new HootAutoReplay().withTimestampReplay().withJoystickReplay();
     private Command m_autonomousCommand;
@@ -138,8 +139,8 @@ public final class Robot extends TimedRobot {
      * Set any value marked FIXME to your actual device ID. Avoid duplicate IDs on the same bus.
      */
     public static final class Ports {
-        public static final String CANBUS_DRIVE = "Big Justice";
-        public static final String CANBUS_OPS = "Baby Gronk";
+        public static final String CANBUS_DRIVE = "Baby Gronk";
+        public static final String CANBUS_OPS = "Big Justice";
 
         /** Driver = 0, Operator = 1 (USB/DH port) */
         public static final int DRIVER_CONTROL = 0;
