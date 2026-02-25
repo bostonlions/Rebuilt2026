@@ -60,9 +60,9 @@ public final class Launcher implements Subsystem {
     private final MotionMagicVoltage motionRequest = new MotionMagicVoltage(0);
     private final DutyCycleOut feederMotionRequest = new DutyCycleOut(1);
     // Separate test speeds: spinner 25%, roller 75%, launcher 10%
-    private final DutyCycleOut feederSpinnerTestRequest = new DutyCycleOut(0.25);
-    private final DutyCycleOut feederRollerTestRequest  = new DutyCycleOut(0.25);
-    private final DutyCycleOut launcherTestRequest      = new DutyCycleOut(0.15);
+    private final DutyCycleOut feederSpinnerTestRequest = new DutyCycleOut(0.30);
+    private final DutyCycleOut feederRollerTestRequest  = new DutyCycleOut(0.40);
+    private final DutyCycleOut launcherTestRequest      = new DutyCycleOut(0.20);
     private final Slot0Configs gains = new Slot0Configs()
         .withKP(4.8).withKD(0.1).withKV(0.12).withKS(0.2).withKA(0.01); // TODO: tune this, maybe different for each motor
     private final MotionMagicConfigs motionMagicConfigs = new MotionMagicConfigs()
