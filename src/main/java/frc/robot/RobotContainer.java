@@ -30,9 +30,9 @@ import frc.robot.subsystems.Drive.SwerveConstants;
 
 public final class RobotContainer {
     private final Telemetry logger = new Telemetry(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
-    public static/*private*/ final ControlBoard controller = ControlBoard.getInstance();
+    public static final ControlBoard controller = ControlBoard.getInstance();
     public final Drivetrain drivetrain = Drivetrain.getInstance();
-    public static/*private*/ final Climber climber = new Climber();
+    public static final Climber climber = new Climber();
     private static final Intake intake = new Intake();
     private static final Launcher launcher = Launcher.getInstance();
 
@@ -103,9 +103,9 @@ public final class RobotContainer {
         );
     }
 
-    public/*private*/ static final class ControlBoard {
+    public static final class ControlBoard {
         private static ControlBoard mInstance = null;
-        public/*private*/ final CustomXboxController operator;
+        public final CustomXboxController operator;
         private final GenericHID driver;
         private final double speedFactor;
         private final double kSwerveDeadband;
@@ -122,17 +122,17 @@ public final class RobotContainer {
             kSwerveDeadband = ControllerConstants.stickDeadband;
         }
 
-        public/*private*/ boolean getFeederSpinnerTestButton() {
+        public boolean getFeederSpinnerTestButton() {
             // Operator Xbox controller A button
             return operator.getButton(CustomXboxController.Button.A);
         }
 
-        public/*private*/ boolean getFeederRollerToggleButton() {
+        public boolean getFeederRollerToggleButton() {
             // Operator Xbox controller X button
             return operator.getButton(CustomXboxController.Button.X);
         }
 
-        public/*private*/ boolean getLauncherToggleButton() {
+        public boolean getLauncherToggleButton() {
             // Operator Xbox controller Y button
             return operator.getButton(CustomXboxController.Button.Y);
         }
@@ -144,7 +144,7 @@ public final class RobotContainer {
             if (ControllerConstants.isMambo) {
                 forwardAxis = driver.getRawAxis(2);
                 strafeAxis = driver.getRawAxis(1);
-                double mag = Math.pow(forwardAxis * forwardAxis + strafeAxis * strafeAxis, 0.5);
+                double mag = Math.hypot(forwardAxis, strafeAxis);
                 double curveFactor = Math.pow(mag, 0.25);
                 forwardAxis = forwardAxis * curveFactor;
                 strafeAxis = strafeAxis * curveFactor;
@@ -224,7 +224,7 @@ public final class RobotContainer {
             return MathUtil.clamp(rightYaw, -1, 1);
         }
 
-        public/*private*/ static final class CustomXboxController {
+        public static final class CustomXboxController {
             private final XboxController mController;
             public enum Side { LEFT, RIGHT }
             public enum Axis { X, Y }
