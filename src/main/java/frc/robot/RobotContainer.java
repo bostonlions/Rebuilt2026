@@ -47,10 +47,10 @@ public final class RobotContainer {
         });
 
         drivetrain.setDefaultCommand( // X is defined as forward according to WPILib convention, and Y is defined as to the left
-            drivetrain.applyRequest(() -> // ...but our controller convention is y as forward, and x as to the right
-                SwerveConstants.drive.withVelocityX(controller.getSwerveTranslation().getY())
-                    .withVelocityY(-controller.getSwerveTranslation().getX())
-                    .withRotationalRate(-controller.getSwerveRotation())
+            drivetrain.applyRequest(() -> // origin is right corner of blue alliance driver station
+                SwerveConstants.drive.withVelocityX(controller.getSwerveTranslation().getX())
+                    .withVelocityY(controller.getSwerveTranslation().getY())
+                    .withRotationalRate(controller.getSwerveRotation())
             )
         );
 

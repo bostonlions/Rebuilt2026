@@ -34,13 +34,13 @@ public final class Intake implements edu.wpi.first.wpilibj2.command.Subsystem {
     private final TalonFX extendMotor = new TalonFX(Ports.INTAKE_EXTEND, kCANBusJustice);
     private final CANcoder extendCANcoder = new CANcoder(15, kCANBusJustice);
     private final SparkFlex spinMotor = new SparkFlex(Ports.INTAKE_SPIN, MotorType.kBrushless);
-    private final MotionMagicDutyCycle in = new MotionMagicDutyCycle(0.055);
-    private final MotionMagicDutyCycle out = new MotionMagicDutyCycle(0.86);
+    private final MotionMagicDutyCycle in = new MotionMagicDutyCycle(0);
+    private final MotionMagicDutyCycle out = new MotionMagicDutyCycle(0.8355);
 
     public Intake() {
         edu.wpi.first.wpilibj2.command.CommandScheduler.getInstance().registerSubsystem(this);
         extendCANcoder.getConfigurator().apply(new CANcoderConfiguration().withMagnetSensor(new MagnetSensorConfigs()
-            .withMagnetOffset(0.016)
+            .withMagnetOffset(0.02)
             .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
             .withAbsoluteSensorDiscontinuityPoint(1)));
         final SparkFlexConfig config = new SparkFlexConfig();

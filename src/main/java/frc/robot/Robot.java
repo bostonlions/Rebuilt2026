@@ -111,6 +111,7 @@ public final class Robot extends TimedRobot {
         //     RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.X),
         //     RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.RIGHT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y)
         // );
+        // System.out.println(m_robotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
     }
 
     @Override
