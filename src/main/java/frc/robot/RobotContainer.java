@@ -27,20 +27,26 @@ import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Launcher;
 import frc.robot.subsystems.Drive.Drivetrain;
 import frc.robot.subsystems.Drive.SwerveConstants;
+import frc.robot.subsystems.Trimmer;
 
 public final class RobotContainer {
     private final Telemetry logger = new Telemetry(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
     public static final ControlBoard controller = ControlBoard.getInstance();
     public final Drivetrain drivetrain = Drivetrain.getInstance();
-    public static final Climber climber = new Climber();
-    private static final Intake intake = new Intake();
+    public static final Climber climber = Climber.getInstance();
+    private static final Intake intake = Intake.getInstance();
     private static final Launcher launcher = Launcher.getInstance();
+    private static final Trimmer trimmer = Trimmer.getInstance();
 
     // Test toggles
     private boolean launcherTestEnabled = false;
     private boolean feederRollerTestEnabled = false;
 
     public RobotContainer() {
+        SmartDashboard.putData(climber);
+        SmartDashboard.putData(intake);
+        SmartDashboard.putData(launcher);
+
         Robot.pigeon.getConfigurator().apply(new com.ctre.phoenix6.configs.Pigeon2Configuration());
         DriverStation.getAlliance().ifPresentOrElse(color -> Robot.pigeon.setYaw(color == Alliance.Blue ? 0 : 180), () -> {
             throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
@@ -61,28 +67,46 @@ public final class RobotContainer {
         drivetrain.registerTelemetry(logger::telemeterize);
 
         new Trigger(() -> controller.operator.getTrigger(ControlBoard.CustomXboxController.Side.RIGHT))
-            .onTrue(new InstantCommand(() -> intake.toggleSpin(), intake));
+            .onTrue(new InstantCommand(() -> intake.setExtension(true), intake));
         new Trigger(() -> controller.operator.getTrigger(ControlBoard.CustomXboxController.Side.LEFT))
-            .onTrue(new InstantCommand(() -> intake.toggleExtension(), intake));
+            .onTrue(new InstantCommand(() -> intake.setExtension(false), intake));
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.LB))
+            .onTrue(new InstantCommand(() -> intake.toggleSpin(), intake));
+        
 
-        // Operator Xbox controller A button tests FEEDER_SPINNER at 25% duty (hold to run)
-        new Trigger(() -> controller.getFeederSpinnerTestButton())
-            .onTrue(new InstantCommand(() -> launcher.setFeederTest(true), launcher))
-            .onFalse(new InstantCommand(() -> launcher.setFeederTest(false), launcher));
+        // // Operator Xbox controller A button tests FEEDER_SPINNER at 25% duty (hold to run)
+        // new Trigger(() -> controller.getFeederSpinnerTestButton())
+        //     .onTrue(new InstantCommand(() -> launcher.setFeederTest(true), launcher))
+        //     .onFalse(new InstantCommand(() -> launcher.setFeederTest(false), launcher));
 
-        // Operator Xbox controller Y button toggles LAUNCHER at 10% duty
-        new Trigger(() -> controller.getLauncherToggleButton())
-            .onTrue(new InstantCommand(() -> {
-                launcherTestEnabled = !launcherTestEnabled;
-                launcher.setLauncherTest(launcherTestEnabled);
-            }, launcher));
+        // // Operator Xbox controller Y button toggles LAUNCHER at test duty
+        // new Trigger(() -> controller.getLauncherToggleButton())
+        //     .onTrue(new InstantCommand(() -> {
+        //         launcherTestEnabled = !launcherTestEnabled;
+        //         launcher.setLauncherTest(launcherTestEnabled);
+        //     }, launcher));
 
-        // Operator Xbox controller X button toggles FEEDER_ROLLER at 75% duty
-        new Trigger(() -> controller.getFeederRollerToggleButton())
-            .onTrue(new InstantCommand(() -> {
-                feederRollerTestEnabled = !feederRollerTestEnabled;
-                launcher.setFeederRollerTest(feederRollerTestEnabled);
-            }, launcher));
+        // // Operator Xbox controller X button toggles FEEDER_ROLLER at 75% duty
+        // new Trigger(() -> controller.getFeederRollerToggleButton())
+        //     .onTrue(new InstantCommand(() -> {
+        //         feederRollerTestEnabled = !feederRollerTestEnabled;
+        //         launcher.setFeederRollerTest(feederRollerTestEnabled);
+        //     }, launcher));
+
+        
+        // Simple shooting mode: X toggles everything on/off, with the launcher on before and after the rest
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
+            .onTrue(new InstantCommand(() -> launcher.simpleToggle(0.4, 30)));
+        /*
+         * TRIMMER - all subsystems can add items to be adjusted.
+         * These commands are marked to run in disabled mode, so we can
+         * tweak parameters and choose auto commands prior to the match starting.
+         */
+        SmartDashboard.putData(trimmer);
+        new Trigger(() -> (controller.operator.getController().getPOV() == 270)).onTrue(trimmer.nextSubsystemCommand());
+        new Trigger(() -> (controller.operator.getController().getPOV() == 90)).onTrue(trimmer.nextItemCommand());
+        new Trigger(() -> (controller.operator.getController().getPOV() == 0)).onTrue(trimmer.incrementItemCommand());
+        new Trigger(() -> (controller.operator.getController().getPOV() == 180)).onTrue(trimmer.decrementItemCommand());
     }
 
     public Command getAutonomousCommand() { // TODO: zero the pitch motor in autonomous by pitching as far down as possible and then zeroing motor
@@ -170,7 +194,7 @@ public final class RobotContainer {
 
                 double scaled_x = MathUtil.applyDeadband(forwardAxis, Math.abs(deadband_vector.getX()));
                 double scaled_y = MathUtil.applyDeadband(strafeAxis, Math.abs(deadband_vector.getY()));
-                return new Translation2d(scaled_x, scaled_y).times(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond) / 7);
+                return new Translation2d(scaled_x, scaled_y).times(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
             }
         }
 
@@ -234,6 +258,10 @@ public final class RobotContainer {
                 Button(int id) { this.id = id; }
             }
 
+            public XboxController getController() {
+                return mController;
+            }
+
             private CustomXboxController(int port) {
                 mController = new XboxController(port);
             }
@@ -270,7 +298,7 @@ public final class RobotContainer {
 
             private static final boolean invertYAxis = false;
             private static final boolean invertRAxis = false;
-            private static final boolean invertXAxis = false;
+            private static final boolean invertXAxis = true;
 
             // Mambo controller doesn't need any of the calibrations below
             private static final boolean isMambo = true;

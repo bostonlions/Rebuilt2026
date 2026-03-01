@@ -372,7 +372,7 @@ public final class Drive implements Subsystem {
             );
         private static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
 
-        public static final double MaxAngularRate = RotationsPerSecond.of(0.3333).in(RadiansPerSecond);
+        public static final double MaxAngularRate = RotationsPerSecond.of(0.7).in(RadiansPerSecond);
         // Theoretical free speed (m/s) at 12 V applied output; this needs to be tuned to your individual robot
         public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.04);
 

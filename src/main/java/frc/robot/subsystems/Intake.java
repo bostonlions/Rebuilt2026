@@ -20,6 +20,11 @@ import com.ctre.phoenix6.signals.SensorDirectionValue;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.ResetMode;
 import com.revrobotics.PersistMode;
@@ -30,17 +35,23 @@ import static frc.robot.Robot.kCANBusJustice;
 
 import frc.robot.Robot.Ports;
 
-public final class Intake implements edu.wpi.first.wpilibj2.command.Subsystem {
+public final class Intake extends SubsystemBase {
+    private static Intake instance = null;
     private final TalonFX extendMotor = new TalonFX(Ports.INTAKE_EXTEND, kCANBusJustice);
     private final CANcoder extendCANcoder = new CANcoder(15, kCANBusJustice);
     private final SparkFlex spinMotor = new SparkFlex(Ports.INTAKE_SPIN, MotorType.kBrushless);
-    private final MotionMagicDutyCycle in = new MotionMagicDutyCycle(0);
-    private final MotionMagicDutyCycle out = new MotionMagicDutyCycle(0.8355);
+    private final MotionMagicDutyCycle in = new MotionMagicDutyCycle(0.1);
+    private final MotionMagicDutyCycle out = new MotionMagicDutyCycle(0.9355);
 
-    public Intake() {
+    public static Intake getInstance() {
+        if (instance == null) instance = new Intake();
+        return instance;
+    }
+
+    private Intake() {
         edu.wpi.first.wpilibj2.command.CommandScheduler.getInstance().registerSubsystem(this);
         extendCANcoder.getConfigurator().apply(new CANcoderConfiguration().withMagnetSensor(new MagnetSensorConfigs()
-            .withMagnetOffset(0.02)
+            .withMagnetOffset(0.12)
             .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
             .withAbsoluteSensorDiscontinuityPoint(1)));
         final SparkFlexConfig config = new SparkFlexConfig();
@@ -52,8 +63,8 @@ public final class Intake implements edu.wpi.first.wpilibj2.command.Subsystem {
         extendMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withCurrentLimits(new CurrentLimitsConfigs()
                 .withSupplyCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(20)
-                .withSupplyCurrentLowerLimit(10)
+                .withSupplyCurrentLimit(30)
+                .withSupplyCurrentLowerLimit(20)
                 .withSupplyCurrentLowerTime(0.1))
             .withSlot0(new Slot0Configs()
                 .withKP(1.65)
@@ -73,7 +84,13 @@ public final class Intake implements edu.wpi.first.wpilibj2.command.Subsystem {
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
                 .withRotorToSensorRatio(3 * 48 / 16.0)
                 .withSensorToMechanismRatio(1)));
+        
+        // Force the position into the 0-1 range, in case the initial reading is <0
+        // so gets pushed up to near 1
+        extendCANcoder.setPosition(MathUtil.inputModulus(extendCANcoder.getPosition().getValueAsDouble(), 0, 1));
+
         setExtension(false);
+        setSpinner(false);
     }
 
     @Override
@@ -99,10 +116,20 @@ public final class Intake implements edu.wpi.first.wpilibj2.command.Subsystem {
 
     public void setSpinner(final boolean spin) {
         spinning = spin;
-        if (spin) spinMotor.set(0.3); else spinMotor.stopMotor();
+        if (spin) spinMotor.set(0.6); else spinMotor.stopMotor();
     }
 
     public void toggleSpin() {
         setSpinner(!spinning);
+    }
+
+    @Override
+    public void initSendable(SendableBuilder builder) {
+        builder.setSmartDashboardType("Intake");
+        builder.setActuator(true);
+
+        builder.addBooleanProperty("Extended", () -> extended, null);
+        builder.addBooleanProperty("Spinning", () -> spinning, null);
+        builder.addDoubleProperty("Extension", () -> extendMotor.getPosition().getValueAsDouble(), null);
     }
 }

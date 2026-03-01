@@ -15,6 +15,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 
@@ -30,7 +31,8 @@ import static frc.robot.RobotContainer.ControlBoard.CustomXboxController.scaleWi
 
 import java.util.Map;
 
-public final class Climber implements edu.wpi.first.wpilibj2.command.Subsystem {
+public final class Climber extends SubsystemBase {
+    private static Climber instance = null;
     private enum Position {Clinch, Grab, Stow, Bottom, L1, Top}
     private enum Request {Stow, Ready, L1, L3}
     private Request request = Request.Ready;
@@ -60,7 +62,12 @@ public final class Climber implements edu.wpi.first.wpilibj2.command.Subsystem {
         Position.Top, Rotations.of(-1)
     );
 
-    public Climber() {
+    public static Climber getInstance() {
+        if (instance == null) instance = new Climber();
+        return instance;
+    }
+
+    private Climber() {
         edu.wpi.first.wpilibj2.command.CommandScheduler.getInstance().registerSubsystem(this);
         // canRange.getConfigurator().apply(new CANrangeConfiguration());
         lowerHookMotor.getConfigurator().apply(new TalonFXConfiguration()

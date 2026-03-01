@@ -19,14 +19,12 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.HootAutoReplay;
 
 public final class Robot extends TimedRobot {
-    public static final Pigeon2 pigeon = new Pigeon2(Ports.PIGEON, Ports.CANBUS_DRIVE);
-    public static final CANBus kCANBusGronk = new CANBus(Ports.CANBUS_DRIVE, "./logs/example.hoot");
-    public static final CANBus kCANBusJustice = new CANBus(Ports.CANBUS_OPS, "./logs/example.hoot");
+    public static final CANBus kCANBusGronk = new CANBus(Ports.CANBUS_DRIVE);
+    public static final CANBus kCANBusJustice = new CANBus(Ports.CANBUS_OPS);
+    public static final Pigeon2 pigeon = new Pigeon2(Ports.PIGEON, kCANBusGronk);
     private final RobotContainer m_robotContainer = new RobotContainer();
-    private final HootAutoReplay m_timeAndJoystickReplay = new HootAutoReplay().withTimestampReplay().withJoystickReplay();
     private Command m_autonomousCommand;
 
     @Override
@@ -41,7 +39,6 @@ public final class Robot extends TimedRobot {
         );
         LimelightHelpers.SetIMUMode("limelight-b", 4);
 
-        m_timeAndJoystickReplay.update();
         CommandScheduler.getInstance().run();
 
         NetworkTable tableA = NetworkTableInstance.getDefault().getTable("limelight-a");
@@ -157,8 +154,8 @@ public final class Robot extends TimedRobot {
         public static final int PITCH_MOTOR = 50; 
         public static final int PITCH_CANCODER = 38; 
         public static final int YAW_MOTOR = 40;
-        public static final int YAW_CANCODER_10 = 52;
-        public static final int YAW_CANCODER_11 = 54;
+        public static final int YAW_CANCODER_11 = 52;
+        public static final int YAW_CANCODER_12 = 54;
         /** Feeder (indexer) motors */
         public static final int FEEDER_SPINNER = 41;
         public static final int FEEDER_ROLLER = 42;
