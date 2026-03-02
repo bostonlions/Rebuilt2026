@@ -102,13 +102,12 @@ public final class Robot extends TimedRobot {
 
     @Override
     public void teleopPeriodic() {
-        // // FOR TESTING:
-        // RobotContainer.climber.move(
-        //     RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y),
-        //     RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.X),
-        //     RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.RIGHT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y)
-        // );
-        // System.out.println(m_robotContainer.drivetrain.getState().Pose.getRotation().getDegrees());
+        // FOR TESTING:
+        m_robotContainer.climber.move(
+            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y),
+            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.X),
+            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.RIGHT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y)
+        );
     }
 
     @Override
@@ -145,12 +144,13 @@ public final class Robot extends TimedRobot {
         public static final int OPERATOR_CONTROL = 1;
 
         /** Climber: lower hook, upper hook, elevator */
-        public static final int LOWER_HOOK_MOTOR = 31;
+        public static final int LOWER_HOOK_MOTOR = 33;
         public static final int UPPER_HOOK_MOTOR = 34;
         public static final int ELEVATOR_MOTOR = 35;
+        public static final int LOWER_HOOK_CANCODER = 32;
 
         /** Launcher: main flywheel */
-        public static final int LAUNCHER = 14;
+        public static final int LAUNCHER = 49;
         public static final int PITCH_MOTOR = 50; 
         public static final int PITCH_CANCODER = 38; 
         public static final int YAW_MOTOR = 40;

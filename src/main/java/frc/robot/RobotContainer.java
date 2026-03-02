@@ -32,26 +32,27 @@ import frc.robot.subsystems.Trimmer;
 public final class RobotContainer {
     private final Telemetry logger = new Telemetry(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
     public static final ControlBoard controller = ControlBoard.getInstance();
-    public final Drivetrain drivetrain = Drivetrain.getInstance();
-    public static final Climber climber = Climber.getInstance();
-    private static final Intake intake = Intake.getInstance();
-    private static final Launcher launcher = Launcher.getInstance();
-    private static final Trimmer trimmer = Trimmer.getInstance();
+    public final Drivetrain drivetrain;
+    public final Climber climber;
+    private final Intake intake;
+    private final Launcher launcher;
+    private final Trimmer trimmer = Trimmer.getInstance();
 
-    // Test toggles
-    private boolean launcherTestEnabled = false;
-    private boolean feederRollerTestEnabled = false;
+    // // Test toggles
+    // private boolean launcherTestEnabled = false;
+    // private boolean feederRollerTestEnabled = false;
 
-    public RobotContainer() {
-        SmartDashboard.putData(climber);
-        SmartDashboard.putData(intake);
-        SmartDashboard.putData(launcher);
-
-        Robot.pigeon.getConfigurator().apply(new com.ctre.phoenix6.configs.Pigeon2Configuration());
+    private void zeroGyro() {
         DriverStation.getAlliance().ifPresentOrElse(color -> Robot.pigeon.setYaw(color == Alliance.Blue ? 0 : 180), () -> {
             throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
         });
+    }
 
+    public RobotContainer() {
+        Robot.pigeon.getConfigurator().apply(new com.ctre.phoenix6.configs.Pigeon2Configuration());
+        zeroGyro();
+
+        drivetrain = Drivetrain.getInstance();
         drivetrain.setDefaultCommand( // X is defined as forward according to WPILib convention, and Y is defined as to the left
             drivetrain.applyRequest(() -> // origin is right corner of blue alliance driver station
                 SwerveConstants.drive.withVelocityX(controller.getSwerveTranslation().getX())
@@ -64,8 +65,13 @@ public final class RobotContainer {
             drivetrain.applyRequest(() -> SwerveConstants.idle).ignoringDisable(true)
         );
 
+        new Trigger(() -> controller.driver.getRawButton(1))
+            .onTrue(new InstantCommand(() -> zeroGyro()).ignoringDisable(true));
+
         drivetrain.registerTelemetry(logger::telemeterize);
 
+        intake = Intake.getInstance();
+        SmartDashboard.putData(intake);
         new Trigger(() -> controller.operator.getTrigger(ControlBoard.CustomXboxController.Side.RIGHT))
             .onTrue(new InstantCommand(() -> intake.setExtension(true), intake));
         new Trigger(() -> controller.operator.getTrigger(ControlBoard.CustomXboxController.Side.LEFT))
@@ -93,10 +99,18 @@ public final class RobotContainer {
         //         launcher.setFeederRollerTest(feederRollerTestEnabled);
         //     }, launcher));
 
-        
+        launcher = Launcher.getInstance();
+        SmartDashboard.putData(launcher);
         // Simple shooting mode: X toggles everything on/off, with the launcher on before and after the rest
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
-            .onTrue(new InstantCommand(() -> launcher.simpleToggle(0.4, 30)));
+            .onTrue(new InstantCommand(() -> launcher.simpleToggle(0.37, 25)));
+
+        climber = Climber.getInstance();
+        SmartDashboard.putData(climber);
+
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.B))
+            .onTrue(new InstantCommand(() -> climber.forceStow()));
+
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
          * These commands are marked to run in disabled mode, so we can
@@ -109,7 +123,7 @@ public final class RobotContainer {
         new Trigger(() -> (controller.operator.getController().getPOV() == 180)).onTrue(trimmer.decrementItemCommand());
     }
 
-    public Command getAutonomousCommand() { // TODO: zero the pitch motor in autonomous by pitching as far down as possible and then zeroing motor
+    public Command getAutonomousCommand() {
         // Simple drive forward auton for an example:
         return Commands.sequence(
             // Reset our field centric heading to match the robot

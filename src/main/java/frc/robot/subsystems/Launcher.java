@@ -110,8 +110,6 @@ public final class Launcher extends SubsystemBase {
     }
 
     private Launcher() {
-        CommandScheduler.getInstance().registerSubsystem(this);
-
         feeder_spinner.getConfigurator().apply(feederMotorConfig);
         feeder_roller.getConfigurator().apply(feederMotorConfig);
 
@@ -151,7 +149,7 @@ public final class Launcher extends SubsystemBase {
         forcePitchDown();
 
         setYaw(0);
-        setPitch(30);
+        setPitch(20);
 
         initTrimmer();
     }
@@ -320,6 +318,7 @@ public final class Launcher extends SubsystemBase {
             CommandScheduler.getInstance().schedule(
                 new WaitCommand(1.5).andThen(new InstantCommand(() -> {
                     launchMotor.setControl(brake);
+                    forcePitchDown();
                 }))
             );
         }
@@ -366,7 +365,8 @@ public final class Launcher extends SubsystemBase {
             pitchMotor.setPosition(pitchLimitRotations);
             forcingDown = false;
             setPitch(pitchBounds.getFirst());
-        }    }
+        }
+    }
 
     @Override
     public void initSendable(SendableBuilder builder) {
@@ -406,6 +406,8 @@ public final class Launcher extends SubsystemBase {
         builder.addDoubleProperty("pitch", () -> getPitch(), null);
         builder.addDoubleProperty("pitchMinTorque", () -> pitchMinTorque, null);
         builder.addDoubleProperty("pitchMaxTorque", () -> pitchMaxTorque, null);
+
+        builder.addDoubleProperty("Launch Speed", () -> launchMotor.getVelocity().getValueAsDouble(), null);
     }
 
     double yawSetpoint = Double.NaN;

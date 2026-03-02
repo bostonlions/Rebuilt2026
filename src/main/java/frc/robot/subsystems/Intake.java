@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
@@ -29,8 +28,6 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.ResetMode;
 import com.revrobotics.PersistMode;
 
-import static edu.wpi.first.units.Units.Rotations;
-
 import static frc.robot.Robot.kCANBusJustice;
 
 import frc.robot.Robot.Ports;
@@ -40,8 +37,9 @@ public final class Intake extends SubsystemBase {
     private final TalonFX extendMotor = new TalonFX(Ports.INTAKE_EXTEND, kCANBusJustice);
     private final CANcoder extendCANcoder = new CANcoder(15, kCANBusJustice);
     private final SparkFlex spinMotor = new SparkFlex(Ports.INTAKE_SPIN, MotorType.kBrushless);
-    private final MotionMagicDutyCycle in = new MotionMagicDutyCycle(0.1);
-    private final MotionMagicDutyCycle out = new MotionMagicDutyCycle(0.9355);
+    private final double inPosition = 0.1;
+    private final double outPosition = 0.9355;
+    private final double intakeSpeed = 0.4;
 
     public static Intake getInstance() {
         if (instance == null) instance = new Intake();
@@ -49,7 +47,6 @@ public final class Intake extends SubsystemBase {
     }
 
     private Intake() {
-        edu.wpi.first.wpilibj2.command.CommandScheduler.getInstance().registerSubsystem(this);
         extendCANcoder.getConfigurator().apply(new CANcoderConfiguration().withMagnetSensor(new MagnetSensorConfigs()
             .withMagnetOffset(0.12)
             .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
@@ -97,26 +94,26 @@ public final class Intake extends SubsystemBase {
     public void periodic() {}
 
     public boolean isRetracted() {
-        return edu.wpi.first.math.MathUtil.isNear(in.getPositionMeasure().in(Rotations),
-            extendMotor.getPosition().getValueAsDouble(), 0.028); // FIXME: get the tolerance right
+        return edu.wpi.first.math.MathUtil.isNear(inPosition,
+            extendMotor.getPosition().getValueAsDouble(), 0.028);
     }
 
     private boolean extended = false; // extender starts in
 
-    public StatusCode setExtension(final boolean extend) {
+    public void setExtension(final boolean extend) {
         extended = extend;
-        return extendMotor.setControl(extend ? out : in);
+        extendMotor.setControl(new MotionMagicDutyCycle(extend ? outPosition : inPosition));
     }
 
-    public StatusCode toggleExtension() {
-        return setExtension(!extended);
+    public void toggleExtension() {
+        setExtension(!extended);
     }
 
     private boolean spinning = false; // not spinning initially
 
     public void setSpinner(final boolean spin) {
         spinning = spin;
-        if (spin) spinMotor.set(0.6); else spinMotor.stopMotor();
+        if (spin) spinMotor.set(intakeSpeed); else spinMotor.stopMotor();
     }
 
     public void toggleSpin() {
