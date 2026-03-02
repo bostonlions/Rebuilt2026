@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -26,6 +27,7 @@ public final class Robot extends TimedRobot {
     public static final Pigeon2 pigeon = new Pigeon2(Ports.PIGEON, kCANBusGronk);
     private final RobotContainer m_robotContainer = new RobotContainer();
     private Command m_autonomousCommand;
+    private boolean m_wasEnabledInTeleop = false;
 
     @Override
     public void robotPeriodic() {
@@ -98,11 +100,19 @@ public final class Robot extends TimedRobot {
     @Override
     public void teleopInit() {
         if (m_autonomousCommand != null) CommandScheduler.getInstance().cancel(m_autonomousCommand);
+        m_robotContainer.climber.resetZerosAndTargetState();
     }
 
     @Override
     public void teleopPeriodic() {
-        // FOR TESTING:
+        if (DriverStation.isEnabled()) {
+            if (!m_wasEnabledInTeleop) {
+                m_robotContainer.climber.resetZerosAndTargetState();
+                m_wasEnabledInTeleop = true;
+            }
+        } else {
+            m_wasEnabledInTeleop = false;
+        }
         m_robotContainer.climber.move(
             RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y),
             RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.X),

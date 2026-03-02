@@ -110,6 +110,9 @@ public final class RobotContainer {
 
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.B))
             .onTrue(new InstantCommand(() -> climber.forceStow()));
+        // Right stick click: upper hook + lower hook + elevator to their targets (no-op if already there)
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.R_JOYSTICK))
+            .onTrue(new InstantCommand(() -> climber.moveUpperHookToTargetAndLowerHookToConstant(), climber));
 
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
