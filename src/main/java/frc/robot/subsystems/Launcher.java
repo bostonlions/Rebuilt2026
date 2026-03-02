@@ -32,6 +32,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import edu.wpi.first.math.MathUtil;
 
 import frc.robot.Robot.Ports;
@@ -103,6 +104,9 @@ public final class Launcher extends SubsystemBase {
             .withNeutralMode(NeutralModeValue.Brake)
             .withInverted(InvertedValue.CounterClockwise_Positive));
     public final boolean shooterIsGoingFastEnough() {return shooterSpeedReady;}
+
+    // Simple-toggle launcher RPM target, adjustable via Trimmer at runtime
+    private double simpleLaunchRpm = 2200.0;
 
     public static Launcher getInstance() {
         if (instance == null) instance = new Launcher();
@@ -301,17 +305,38 @@ public final class Launcher extends SubsystemBase {
     }
 
     private boolean toggledOn = false;
-    public void simpleToggle(double launchSpeed, double pitchDegrees) {
+
+    /** Accessor for the simple-toggle launcher RPM target. Used by Trimmer and RobotContainer. */
+    public double getSimpleLaunchRpm() {
+        return simpleLaunchRpm;
+    }
+
+    /** Simple shooting mode toggle, using the internal simpleLaunchRpm and a fixed pitch. */
+    public void simpleToggle() {
+        simpleToggle(simpleLaunchRpm, 25.0);
+    }
+
+    public void simpleToggle(double launchSpeedRpm, double pitchDegrees) {
         toggledOn = !toggledOn;
-        System.out.println("launcher simpleToggle, toggledOn: " + toggledOn);
+        System.out.println("launcher simpleToggle, toggledOn: " + toggledOn + ", target RPM=" + launchSpeedRpm);
         if (toggledOn) {
-            launchMotor.setControl(new DutyCycleOut(launchSpeed));
+            // Closed-loop velocity control: interpret launchSpeedRpm as motor RPM
+            double targetRps = launchSpeedRpm / 60.0; // rotations per second
+            launchMotor.setControl(new MotionMagicVelocityDutyCycle(targetRps));
             setYaw(0);
             setPitch(pitchDegrees);
             CommandScheduler.getInstance().schedule(
-                new WaitCommand(1.5).andThen(new InstantCommand(() -> {
-                    setFeeder(true);
-                }))
+                // Wait until either launcher is at speed (within tolerance) OR 3 seconds have passed,
+                // then start the feeder.
+                new WaitUntilCommand(() -> {
+                    double currentRps = launchMotor.getVelocity().getValueAsDouble();
+                    // Treat "at speed" as within 5% of target or an absolute small epsilon for low targets
+                    double tol = Math.max(2.0, Math.abs(targetRps) * 0.05); // RPS tolerance
+                    boolean atSpeed = Math.abs(currentRps - targetRps) <= tol;
+                    // Optional debug
+                    // System.out.println("Launcher wait: currentRps=" + currentRps + " targetRps=" + targetRps + " atSpeed=" + atSpeed);
+                    return atSpeed;
+                }).withTimeout(3.0).andThen(new InstantCommand(() -> setFeeder(true)))
             );
         } else {
             setFeeder(false);
@@ -408,6 +433,7 @@ public final class Launcher extends SubsystemBase {
         builder.addDoubleProperty("pitchMaxTorque", () -> pitchMaxTorque, null);
 
         builder.addDoubleProperty("Launch Speed", () -> launchMotor.getVelocity().getValueAsDouble(), null);
+        builder.addDoubleProperty("Simple Launch RPM Target", () -> simpleLaunchRpm, null);
     }
 
     double yawSetpoint = Double.NaN;
@@ -447,6 +473,15 @@ public final class Launcher extends SubsystemBase {
                 setPitch(pitchSetpoint);
             }
         );
-
+        trimmer.add(
+            "Launcher",
+            "Simple Launch RPM +- 100",
+            () -> simpleLaunchRpm,
+            (up) -> {
+                double delta = 100.0;
+                simpleLaunchRpm = Math.max(0.0, simpleLaunchRpm + (up ? delta : -delta));
+                System.out.println("[Launcher] Updated simple launch RPM target: " + simpleLaunchRpm);
+            }
+        );
     }
 }

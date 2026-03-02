@@ -69,7 +69,7 @@ public final class Climber extends SubsystemBase {
     public static final double kUpperHookTargetRotationsFromZero = 24.0;
 
     /** Tolerance in motor rotations to consider upper hook "at" the target (avoids re-running on double-click). */
-    private static final double kUpperHookAtTargetToleranceRotations =1;
+    private static final double kUpperHookAtTargetToleranceRotations = 2;
 
     /** Upper hook motor position when teleop was enabled; used as zero for target calculation. */
     private double upperHookZeroPosition = 0.0;
@@ -81,7 +81,8 @@ public final class Climber extends SubsystemBase {
     public static final double kElevatorTargetRotationsFromZero = -83.5; //(roughly 1" per 10 rotation)
 
     /** Tolerance in motor rotations to consider elevator "at" the target. */
-    private static final double kElevatorAtTargetToleranceRotations 
+    private static final double kElevatorAtTargetToleranceRotations = 2;
+
     /** Elevator motor position when teleop was enabled; used as zero for target calculation. */
     private double elevatorZeroPosition = 0.0;
 
