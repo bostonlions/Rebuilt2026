@@ -112,9 +112,18 @@ public final class RobotContainer {
 
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.B))
             .onTrue(new InstantCommand(() -> climber.forceStow()));
+        // Operator Xbox A button: lower hooks to Grab CANCoder position
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.A))
+            .onTrue(new InstantCommand(() -> climber.moveLowerHooksToGrab(), climber));
+        // Operator Xbox Y button: lower hooks to Stow CANCoder position
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.Y))
+            .onTrue(new InstantCommand(() -> climber.moveLowerHooksToStow(), climber));
         // Right stick click: upper hook + lower hook + elevator to their targets (no-op if already there)
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.R_JOYSTICK))
             .onTrue(new InstantCommand(() -> climber.moveUpperHookToTargetAndLowerHookToConstant(), climber));
+        // Left stick click: elevator and upper hooks to zero rotations
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.L_JOYSTICK))
+            .onTrue(new InstantCommand(() -> climber.moveElevatorAndUpperHooksToZero(), climber));
 
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
