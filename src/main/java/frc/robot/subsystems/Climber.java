@@ -17,7 +17,6 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -40,7 +39,7 @@ import java.util.Map;
 
 public final class Climber extends SubsystemBase {
     private static Climber instance = null;
-    private enum Position {Clinch, Grab, Stow, Bottom, L1, Top}
+    public enum Position {Clinch, Grab, Stow, Bottom, L1, Top}
     private enum Request {Stow, Ready, L1, L3}
     private Request request = Request.Ready;
     private final double lowerClosedLoopErrorTolerance = 0.006944;
