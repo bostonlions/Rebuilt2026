@@ -10,13 +10,13 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TorqueCurrentConfigs;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
-import com.ctre.phoenix6.controls.MotionMagicVelocityDutyCycle;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -46,54 +46,35 @@ public final class Climber extends SubsystemBase {
     private final double upperClosedLoopErrorTolerance = Millimeters.of(5).magnitude() / (24.0/45.0 *
         Inches.of(0.375).in(Millimeters));
     private final double elevatorClosedLoopErrorTolerance = 1.71455;
-    private final double elevatorForceTorque = 20;
-    private final double elevatorForceVelocityLimit = 0.1;
-    private final double hookForceTorque = -20;
-    private final double hookForceVelocityLimit = -0.1;
-    private final double hookLimitRotations = -0.5; // FIXME
+    private final double elevatorForceTorque = -10;
+    private final double elevatorForceVelocityLimit = -0.5;
+    private final double elevatorLimitRotations = -5;
+    private final double elevatorTargetTolerance = 2;
+    private final double hookForceTorque = 5;
+    private final double hookForceVelocityLimit = 0.5;
+    private final double hookLimitRotations = 15; // FIXME
+    private final double hookTargetTolerance = 2;
     // private final CANrange canRange = new CANrange(Ports.CANRANGE, kCANBus);
     private final Map<Position, Angle> elevatorPositions = Map.of( // rotations are motor rotations;
         Position.Stow, Rotations.of(0),
-        Position.Bottom, Rotations.of(0),                       // 15 elevator motor rotations = 4 cm height change
-        Position.L1, Rotations.of(-61.8),      //FIXME
-        Position.Top, Rotations.of(-250)
+        Position.Bottom, Rotations.of(0),
+        Position.L1, Rotations.of(200),      //FIXME
+        Position.Top, Rotations.of(245)
     );
-    /** Lower hook CANcoder targets (rotations 0–1). From Phoenix Tuner. */
-    public static final double kLowerHookStowCancoderPosition   = 0.399;
-    public static final double kLowerHookClinchCancoderPosition = 0.555;
-    public static final double kLowerHookGrabCancoderPosition   = 0.663;
-
-    /** Tolerance in motor rotations to consider upper hook "at" the target (avoids re-running on double-click). */
-    private static final double kUpperHookAtTargetToleranceRotations = 2;
-
-    /** Upper hook motor position when teleop was enabled; used as zero for target calculation. */
-    private double upperHookZeroPosition = 0.0;
-
-    /** Tolerance in motor rotations to consider elevator "at" the target. */
-    private static final double kElevatorAtTargetToleranceRotations = 2;
-
-    /** Elevator motor position when teleop was enabled; no longer used for absolute targets but retained for compatibility. */
-    private double elevatorZeroPosition = 0.0;
-
-    /**
-     * Left stick targets: push-up uses Top (same as right-stick click); pull-down uses Bottom.
-     * Both upper hook and elevator move at the same time.
-     */
-    public static final double kElevatorPullDownTargetRotationsFromZero = 0.0;
 
     /** Left stick Y must exceed this to enter target mode (push up or pull down); else motion stops. */
     private static final double kLeftStickTargetModeThreshold = 0.15;
 
     private final Map<Position, Angle> lowerHookPositions = Map.of( // rotations are CANCoder absolute positions (0–1)
-        Position.Stow, Rotations.of(kLowerHookStowCancoderPosition),
-        Position.Clinch, Rotations.of(kLowerHookClinchCancoderPosition),
-        Position.Grab, Rotations.of(kLowerHookGrabCancoderPosition)
+        Position.Stow, Rotations.of(0.399),
+        Position.Clinch, Rotations.of(0.555),
+        Position.Grab, Rotations.of(0.663)
     );
     private final Map<Position, Angle> upperHookPositions = Map.of( // rotations are motor rotations
         Position.Stow, Rotations.of(0),
-        Position.Bottom, Rotations.of(260),
-        Position.L1, Rotations.of(42.2),      //FIXME
-        Position.Top, Rotations.of(64)
+        Position.Bottom, Rotations.of(-260),
+        Position.L1, Rotations.of(-100),      //FIXME
+        Position.Top, Rotations.of(-64)
     );
 
     private final MotionMagicVoltage motion = new MotionMagicVoltage(0);
@@ -135,17 +116,16 @@ public final class Climber extends SubsystemBase {
         upperHookMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withSlot0(new Slot0Configs().withKP(0.025))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicAcceleration(160)
+                .withMotionMagicAcceleration(500)
                 .withMotionMagicCruiseVelocity(80))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(30)
                 .withPeakReverseTorqueCurrent(-30))
         );
         elevatorMotor.getConfigurator().apply(new TalonFXConfiguration()
-            .withMotorOutput(new MotorOutputConfigs().withInverted(InvertedValue.Clockwise_Positive))
             .withSlot0(new Slot0Configs().withKP(0.025))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicAcceleration(160)
+                .withMotionMagicAcceleration(500)
                 .withMotionMagicCruiseVelocity(80))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(20)
@@ -157,23 +137,6 @@ public final class Climber extends SubsystemBase {
 
     /** used for testing only */
     private boolean manualLH = false, manualUH = false, manualElevator = false;
-    /** True when left stick was in target mode last cycle; used to hold position on release instead of cutting power. */
-    private boolean leftStickWasInTargetMode = false;
-    /** Last position target we sent to upper hook (motor rotations); only re-send when target changes to avoid glitches. */
-    private double lastUpperHookTargetRotations = Double.NaN;
-    /** Last position target we sent to elevator (motor rotations). */
-    private double lastElevatorTargetRotations = Double.NaN;
-    /** Hold positions when stick released mid-move; re-sent every cycle so motors don't revert to old target. */
-    private double lastHoldUpperRotations = Double.NaN;
-    private double lastHoldElevatorRotations = Double.NaN;
-    /** Treat targets within this many rotations as "same" so we don't constantly re-command. */
-    private static final double kTargetChangeEpsilonRotations = 0.02;
-    /** Debug: print every this many move() calls when in target mode (~1 sec). Set 0 to disable. */
-    private static final int kElevatorDebugPrintInterval = 50;
-    private int moveCallCount = 0;
-    /** Debug: stream upper hook and elevator positions every this many periodic() calls (~0.5 sec). Set 0 to disable. */
-    private static final int kPositionStreamInterval = 25;
-    private int periodicCount = 0;
 
     /**
      * Left stick Y: push up = both to Top; pull down = both to Bottom. Both move at the same time.
@@ -181,73 +144,28 @@ public final class Climber extends SubsystemBase {
      */
     public void move(double joyValueUpHook, double joyValueLowHook, double joyValueElevate) {
         double scaledUH = scaleWithDeadband(joyValueUpHook, 0.25);
-        double scaledElevator = scaleWithDeadband(joyValueElevate, 0.25);
+        // double scaledElevator = scaleWithDeadband(joyValueElevate, 0.25);
 
+        if (forcingElevatorDown || forcingHooksUp) return;
         if (Math.abs(scaledUH) > kLeftStickTargetModeThreshold) {
             if (scaledUH < 0) {
                 // Push up: both move to their targets at the same time (upper Top, elevator Top)
-                double targetUpper = upperHookPositions.get(Position.Top).in(Rotations);
-                double targetElevator = elevatorPositions.get(Position.Top).in(Rotations);
-                upperHookMotor.setControl(new MotionMagicDutyCycle(Rotations.of(targetUpper)));
-                elevatorMotor.setControl(new MotionMagicDutyCycle(Rotations.of(targetElevator)));
-                lastUpperHookTargetRotations = targetUpper;
-                lastElevatorTargetRotations = targetElevator;
-                if (kElevatorDebugPrintInterval > 0 && (++moveCallCount % kElevatorDebugPrintInterval == 0)) {
-                    double curElev = elevatorMotor.getPosition().getValueAsDouble();
-                    System.out.println("[Climber] PUSH UP: elevatorZero=" + elevatorZeroPosition + " targetElev=" + targetElevator + " currentElev=" + curElev + " (commanding elevator every cycle)");
-                }
+                setUpperHooks(Position.Top);
+                setElevator(Position.Top);
             } else {
                 // Pull down: both move to their targets at the same time (upper Bottom, elevator Bottom)
-                double targetUpper = upperHookPositions.get(Position.Bottom).in(Rotations);
-                double targetElevator = elevatorPositions.get(Position.Bottom).in(Rotations);
-                upperHookMotor.setControl(new MotionMagicDutyCycle(Rotations.of(targetUpper)));
-                elevatorMotor.setControl(new MotionMagicDutyCycle(Rotations.of(targetElevator)));
+                setUpperHooks(Position.Bottom);
+                setElevator(Position.Bottom);
                 // Whenever we pull down on the left stick, lower hooks are neutral (not targeting a position).
                 setLowerHooksNeutral();
-                lastUpperHookTargetRotations = targetUpper;
-                lastElevatorTargetRotations = targetElevator;
-                if (kElevatorDebugPrintInterval > 0 && (++moveCallCount % kElevatorDebugPrintInterval == 0)) {
-                    double curElev = elevatorMotor.getPosition().getValueAsDouble();
-                    System.out.println("[Climber] PULL DOWN: elevatorZero=" + elevatorZeroPosition + " targetElev=" + targetElevator + " currentElev=" + curElev + " (commanding elevator every cycle)");
-                }
             }
+            manualUH = true;
+        } else if (manualUH) {
+            setUpperHooksHold();
+            setElevatorHold();
             manualUH = false;
-            manualElevator = false;
-            leftStickWasInTargetMode = true;
-        } else {
-            moveCallCount = 0;
-            if (leftStickWasInTargetMode || manualUH || manualElevator) {
-                // Transition from target or manual: capture current position to hold
-                lastHoldUpperRotations = upperHookMotor.getPosition().getValueAsDouble();
-                lastHoldElevatorRotations = elevatorMotor.getPosition().getValueAsDouble();
-            }
-            // Re-send hold every cycle when released so motors don't revert to a previous target
-            if (!Double.isNaN(lastHoldUpperRotations) && !Double.isNaN(lastHoldElevatorRotations)) {
-                upperHookMotor.setControl(new MotionMagicDutyCycle(Rotations.of(lastHoldUpperRotations)));
-                elevatorMotor.setControl(new MotionMagicDutyCycle(Rotations.of(lastHoldElevatorRotations)));
-            }
-            lastUpperHookTargetRotations = Double.NaN;
-            lastElevatorTargetRotations = Double.NaN;
-            leftStickWasInTargetMode = false;
-            manualUH = false;
-            manualElevator = false;
         }
 
-        if (Math.abs(scaledUH) <= kLeftStickTargetModeThreshold && (scaledUH != 0 || manualUH)) {
-            upperHookMotor.setControl(new MotionMagicVelocityDutyCycle(25 * scaledUH));
-            manualUH = scaledUH != 0;
-            lastUpperHookTargetRotations = Double.NaN;
-        }
-        if (Math.abs(scaledUH) <= kLeftStickTargetModeThreshold && (scaledElevator != 0 || manualElevator)) {
-            elevatorMotor.setControl(new MotionMagicVelocityDutyCycle(25 * scaledElevator));
-            manualElevator = scaledElevator != 0;
-            lastElevatorTargetRotations = Double.NaN;
-        }
-    }
-
-    private static boolean targetChanged(double newTarget, double lastTarget) {
-        if (Double.isNaN(lastTarget)) return true;
-        return Math.abs(newTarget - lastTarget) > kTargetChangeEpsilonRotations;
     }
 
     public StatusCode request(final Request request) {
@@ -334,59 +252,67 @@ public final class Climber extends SubsystemBase {
         } else return StatusCode.GeneralError;
     }
 
-    private void setElevator(Position target) {
+    private double elevatorTarget = Double.NaN, upperHookTarget = Double.NaN, lowerHookTarget = Double.NaN;
+
+    public void setElevator(Position target) {
         Angle pos = elevatorPositions.get(target);
         if (pos == null) pos = elevatorPositions.get(Position.Stow);
+        System.out.println("[Climber] setElevator " + target + " - " + pos);
         elevatorMotor.setControl(new MotionMagicDutyCycle(pos));
+        elevatorTarget = pos.magnitude();
     }
 
-    private void setUpperHooks(Position target) {
+    public void setUpperHooks(Position target) {
         Angle pos = upperHookPositions.get(target);
         if (pos == null) pos = upperHookPositions.get(Position.Stow);
+        System.out.println("[Climber] setUpperHooks " + target + " - " + pos);
         upperHookMotor.setControl(new MotionMagicDutyCycle(pos));
+        upperHookTarget = pos.magnitude();
     }
 
-    private void setLowerHooks(Position target) {
+    public void setLowerHooks(Position target) {
         Angle pos = lowerHookPositions.get(target);
         if (pos == null) pos = lowerHookPositions.get(Position.Stow);
-        System.out.println("setLowerHooks " + pos);
+        System.out.println("[Climber] setLowerHooks " + target + " - " + pos);
         lowerHookMotor.setControl(new MotionMagicDutyCycle(pos.in(Rotations)));
-    }
-
-    /** Lower hooks helpers: move to Stow/Clinch/Grab using absolute CANCoder positions (0–1 rotations). */
-    public void moveLowerHooksToStow() {
-        System.out.println("[Climber] moveLowerHooksToStow (CANCoder=" + kLowerHookStowCancoderPosition + ")");
-        setLowerHooks(Position.Stow);
-    }
-
-    public void moveLowerHooksToClinch() {
-        System.out.println("[Climber] moveLowerHooksToClinch (CANCoder=" + kLowerHookClinchCancoderPosition + ")");
-        setLowerHooks(Position.Clinch);
-    }
-
-    public void moveLowerHooksToGrab() {
-        System.out.println("[Climber] moveLowerHooksToGrab (CANCoder=" + kLowerHookGrabCancoderPosition + ")");
-        setLowerHooks(Position.Grab);
+        lowerHookTarget = pos.magnitude();
     }
 
     /** Lower hooks neutral: stop actively targeting a position (no MotionMagic holding). */
     private void setLowerHooksNeutral() {
         System.out.println("[Climber] setLowerHooksNeutral");
         lowerHookMotor.setControl(new DutyCycleOut(0.0));
+        lowerHookTarget = Double.NaN;
     }
 
-    /**
-     * Sets the current upper hook motor position as the zero point (call when teleop is enabled).
-     */
-    public void setUpperHookZeroFromCurrentPosition() {
-        upperHookZeroPosition = upperHookMotor.getPosition().getValueAsDouble();
+    private double upperHooksHoldPosition = -1000;
+    private void setUpperHooksHold() {
+        System.out.println("[Climber] setUpperHooksHold");
+        double pos = upperHookMotor.getPosition().getValueAsDouble();
+        if (!MathUtil.isNear(pos, upperHooksHoldPosition, hookTargetTolerance)) {
+            upperHooksHoldPosition = pos;
+            upperHookMotor.setControl(new MotionMagicDutyCycle(pos));
+            upperHookTarget = pos;
+        }
     }
 
-    /**
-     * Sets the current elevator motor position as the zero point (call when teleop is enabled).
-     */
-    public void setElevatorZeroFromCurrentPosition() {
-        elevatorZeroPosition = elevatorMotor.getPosition().getValueAsDouble();
+    private double elevatorHoldPosition = -1000;
+    private void setElevatorHold() {
+        System.out.println("[Climber] setElevatorHold");
+        double pos = elevatorMotor.getPosition().getValueAsDouble();
+        if (!MathUtil.isNear(pos, elevatorHoldPosition, elevatorTargetTolerance)) {
+            elevatorHoldPosition = pos;
+            elevatorMotor.setControl(new MotionMagicDutyCycle(pos));
+            elevatorTarget = pos;
+        }
+    }
+
+    public boolean upperHooksAtTarget() {
+        return MathUtil.isNear(upperHookMotor.getPosition().getValueAsDouble(), upperHookTarget, hookTargetTolerance);
+    }
+
+    public boolean elevatorAtTarget() {
+        return MathUtil.isNear(elevatorMotor.getPosition().getValueAsDouble(), elevatorTarget, elevatorTargetTolerance);
     }
 
     /**
@@ -397,67 +323,44 @@ public final class Climber extends SubsystemBase {
     public void resetZerosAndTargetState() {
         upperHookMotor.setPosition(0);
         elevatorMotor.setPosition(0);
-        upperHookZeroPosition = 0;
-        // Elevator now uses absolute positions from elevatorPositions (Top/Bottom), so zero is not used.
-        lastUpperHookTargetRotations = Double.NaN;
-        lastElevatorTargetRotations = Double.NaN;
-        lastHoldUpperRotations = Double.NaN;
-        lastHoldElevatorRotations = Double.NaN;
-        leftStickWasInTargetMode = false;
     }
 
     /**
-     * On right stick click: moves upper hook, lower hook, and elevator to their targets.
-     * Lower hooks go to the "Clinch" CANCoder position (absolute 0–1 rotations),
-     * elevator goes to Top using elevatorPositions.
+     * Prepare to climb: Elevator and upper hooks to top, lower hooks to "clinch"
+     * WARNING: If elevator is already up and upper hooks are stowed, this will breach the rules.
+     * Call this only with the elevator down, or with the upper hooks already out.
      */
-    public void moveUpperHookToTargetAndLowerHookToConstant() {
-        double targetUpper = upperHookPositions.get(Position.Top).in(Rotations);
-        double targetElevator = elevatorPositions.get(Position.Top).in(Rotations);
-        upperHookMotor.setControl(new MotionMagicDutyCycle(Rotations.of(targetUpper)));
-        // Lower hook to Clinch position
-        lowerHookMotor.setControl(new MotionMagicDutyCycle(Rotations.of(kLowerHookClinchCancoderPosition)));
-        elevatorMotor.setControl(new MotionMagicDutyCycle(Rotations.of(targetElevator)));
-        lastUpperHookTargetRotations = targetUpper;
-        lastElevatorTargetRotations = targetElevator;
+    public void prepToClimb() {
+        setUpperHooks(Position.Top);
+        setLowerHooks(Position.Clinch);
+        CommandScheduler.getInstance().schedule(
+            new WaitUntilCommand(() -> upperHooksAtTarget())
+                .andThen(new InstantCommand(() -> setElevator(Position.Top)))
+        );
     }
 
     /**
      * Moves elevator and upper hooks to zero rotations (the position when teleop was enabled).
      * Call from left stick click.
      */
-    public void moveElevatorAndUpperHooksToZero() {
-        double zero = 0;
-        upperHookMotor.setControl(new MotionMagicDutyCycle(Rotations.of(zero)));
-        elevatorMotor.setControl(new MotionMagicDutyCycle(Rotations.of(zero)));
-        lastUpperHookTargetRotations = zero;
-        lastElevatorTargetRotations = zero;
-        lastHoldUpperRotations = zero;
-        lastHoldElevatorRotations = zero;
+    public void stow() {
+        setElevator(Position.Stow);
+        setLowerHooks(Position.Stow);
+        CommandScheduler.getInstance().schedule(
+            new WaitUntilCommand(() -> elevatorAtTarget())
+                .andThen(new InstantCommand(() -> setUpperHooks(Position.Stow)))
+        );
     }
 
-    /**
-     * Moves elevator to Top (as defined in elevatorPositions). If already at target (within tolerance),
-     * does nothing. Call from a button or command when you want to go to the preset elevator height.
-     */
-    public void moveElevatorToTarget() {
-        double targetElevator = elevatorPositions.get(Position.Top).in(Rotations);
-        double currentElevator = elevatorMotor.getPosition().getValueAsDouble();
-        if (Math.abs(currentElevator - targetElevator) <= kElevatorAtTargetToleranceRotations) {
-            return;
-        }
-        elevatorMotor.setControl(new MotionMagicDutyCycle(Rotations.of(targetElevator)));
-    }
-
-    private double elevatorMinTorque = 0, elevatorMaxTorque = 0, hookMinTorque = 0, hookMaxTorque = 0;
+    private double elevatorMinTorque = 0, elevatorMaxTorque = 0, hookMinTorque = 0, hookMaxTorque = 0, elevatorSpeed = 0, hookSpeed = 0;
 
     private boolean forcingElevatorDown = false;
     private boolean forcingHooksUp = false;
     public void forceStow() {
         forcingElevatorDown = true;
         forcingHooksUp = true;
-        elevatorMotor.setControl(new DutyCycleOut(0.05));
-        upperHookMotor.setControl(new DutyCycleOut(-0.1));
+        elevatorMotor.setControl(new DutyCycleOut(-0.05));
+        upperHookMotor.setControl(new DutyCycleOut(0.05));
         setLowerHooks(Position.Stow);
     }
 
@@ -471,36 +374,23 @@ public final class Climber extends SubsystemBase {
         if (upperHooksTorque < hookMinTorque) hookMinTorque = upperHooksTorque;
         if (upperHooksTorque > hookMaxTorque) hookMaxTorque = upperHooksTorque;
 
-        if (
-            forcingElevatorDown &&
-            (elevatorTorque > elevatorForceTorque) &&
-            (elevatorMotor.getVelocity().getValueAsDouble() < elevatorForceVelocityLimit)
-        ) {
+        elevatorSpeed = elevatorMotor.getVelocity().getValueAsDouble();
+        if (forcingElevatorDown && (elevatorTorque < elevatorForceTorque) && (elevatorSpeed > elevatorForceVelocityLimit)) {
             System.out.println("Elevator bottom limit hit, marking min height");
-            elevatorMotor.setPosition(0);
+            elevatorMotor.setPosition(elevatorLimitRotations);
             forcingElevatorDown = false;
             setElevator(Position.Stow);
         } else if (forcingElevatorDown) {
             System.out.println("Still forcing elevator down");
         }
-        if (
-            forcingHooksUp &&
-            (upperHooksTorque < hookForceTorque) &&
-            (upperHookMotor.getVelocity().getValueAsDouble() > hookForceVelocityLimit)
-        ) {
-            System.out.println("Upper hooks stow limit hit, marking max height");
+        hookSpeed = upperHookMotor.getVelocity().getValueAsDouble();
+        if (forcingHooksUp && (upperHooksTorque > hookForceTorque) && (hookSpeed < hookForceVelocityLimit)) {
+            System.out.println("Upper hooks stow limit hit, marking max position");
             upperHookMotor.setPosition(hookLimitRotations);
             forcingHooksUp = false;
             setUpperHooks(Position.Stow);
         } else if (forcingHooksUp) {
             System.out.println("Still forcing hooks up");
-        }
-
-        // Stream upper hook and elevator positions (rotations) for debugging
-        if (kPositionStreamInterval > 0 && (++periodicCount % kPositionStreamInterval == 0)) {
-            double upperHookRot = upperHookMotor.getPosition().getValueAsDouble();
-            double elevatorRot = elevatorMotor.getPosition().getValueAsDouble();
-            System.out.printf("[Climber] upperHook=%.3f rot  elevator=%.3f rot%n", upperHookRot, elevatorRot);
         }
     }
 
@@ -512,7 +402,9 @@ public final class Climber extends SubsystemBase {
         builder.addDoubleProperty("Elevator rot", () -> elevatorMotor.getPosition().getValueAsDouble(), null);
         builder.addDoubleProperty("Upper hook rot", () -> upperHookMotor.getPosition().getValueAsDouble(), null);
         builder.addDoubleProperty("Lower hook rot", () -> lowerHookMotor.getPosition().getValueAsDouble(), null);
-        builder.addDoubleProperty("Lower hook cc", () -> lowerHookCANcoder.getPosition().getValueAsDouble(), null);
+        builder.addDoubleProperty("Elevator target", () -> elevatorTarget, null);
+        builder.addDoubleProperty("Upper hook target", () -> upperHookTarget, null);
+        builder.addDoubleProperty("Lower hook target", () -> lowerHookTarget, null);
 
         builder.addDoubleProperty("elevatorMinTorque", () -> elevatorMinTorque, null);
         builder.addDoubleProperty("elevatorMaxTorque", () -> elevatorMaxTorque, null);

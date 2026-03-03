@@ -72,6 +72,7 @@ public final class RobotContainer {
 
         intake = Intake.getInstance();
         SmartDashboard.putData(intake);
+        // TODO: ensure climber is stowed before we extend the intake
         new Trigger(() -> controller.operator.getTrigger(ControlBoard.CustomXboxController.Side.RIGHT))
             .onTrue(new InstantCommand(() -> intake.setExtension(true), intake));
         new Trigger(() -> controller.operator.getTrigger(ControlBoard.CustomXboxController.Side.LEFT))
@@ -114,16 +115,16 @@ public final class RobotContainer {
             .onTrue(new InstantCommand(() -> climber.forceStow()));
         // Operator Xbox A button: lower hooks to Grab CANCoder position
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.A))
-            .onTrue(new InstantCommand(() -> climber.moveLowerHooksToGrab(), climber));
+            .onTrue(new InstantCommand(() -> climber.setLowerHooks(Climber.Position.Grab), climber));
         // Operator Xbox Y button: lower hooks to Stow CANCoder position
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.Y))
-            .onTrue(new InstantCommand(() -> climber.moveLowerHooksToStow(), climber));
-        // Right stick click: upper hook + lower hook + elevator to their targets (no-op if already there)
+            .onTrue(new InstantCommand(() -> climber.setLowerHooks(Climber.Position.Stow), climber));
+        // Right stick click: prepare to climb TODO ensure intake is stowed first
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.R_JOYSTICK))
-            .onTrue(new InstantCommand(() -> climber.moveUpperHookToTargetAndLowerHookToConstant(), climber));
-        // Left stick click: elevator and upper hooks to zero rotations
+            .onTrue(new InstantCommand(() -> climber.prepToClimb(), climber));
+        // Left stick click: stow the climber
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.L_JOYSTICK))
-            .onTrue(new InstantCommand(() -> climber.moveElevatorAndUpperHooksToZero(), climber));
+            .onTrue(new InstantCommand(() -> climber.stow(), climber));
 
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
