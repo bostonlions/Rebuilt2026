@@ -13,11 +13,13 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
+import com.ctre.phoenix6.hardware.CANrange;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.CANBus;
 
@@ -25,9 +27,11 @@ public final class Robot extends TimedRobot {
     public static final CANBus kCANBusGronk = new CANBus(Ports.CANBUS_DRIVE);
     public static final CANBus kCANBusJustice = new CANBus(Ports.CANBUS_OPS);
     public static final Pigeon2 pigeon = new Pigeon2(Ports.PIGEON, kCANBusGronk);
+    public static final CANrange canRange = new CANrange(Ports.CANRANGE, kCANBusJustice);
     private final RobotContainer m_robotContainer = new RobotContainer();
     private Command m_autonomousCommand;
     private boolean m_wasEnabledInTeleop = false;
+    private int m_canrangeDebugCounter = 0;
 
     @Override
     public void robotPeriodic() {
@@ -42,6 +46,14 @@ public final class Robot extends TimedRobot {
         LimelightHelpers.SetIMUMode("limelight-b", 4);
 
         CommandScheduler.getInstance().run();
+
+        // Publish CANrange distance for Elastic Dashboard (units: meters)
+        double distanceM = canRange.getDistance().getValue().in(Units.Meters);
+        if (m_canrangeDebugCounter++ % 25 == 0) {
+            System.out.println("[CANrange] Distance: " + distanceM + " m");
+        }
+        SmartDashboard.putNumber("CANrange/Distance", distanceM);
+        NetworkTableInstance.getDefault().getTable("CANrange").getEntry("Distance").setDouble(distanceM);
 
         NetworkTable tableA = NetworkTableInstance.getDefault().getTable("limelight-a");
         double[] poseA = tableA.getEntry("botpose_wpiblue").getDoubleArray(new double[6]);
@@ -135,7 +147,10 @@ public final class Robot extends TimedRobot {
     public void testExit() {}
 
     @Override
-    public void simulationPeriodic() {}
+    public void simulationPeriodic() {
+        // CANrange returns 0 in sim by default; set a value so elevator logic and dashboard work
+        canRange.getSimState().setDistance(0.1);
+    }
 
     /**
      * Central CAN ID and port configuration.
@@ -172,7 +187,10 @@ public final class Robot extends TimedRobot {
 
         /** Intake: extend and spin */
         public static final int INTAKE_EXTEND = 36;
-        public static final int INTAKE_SPIN = 44; 
+        public static final int INTAKE_SPIN = 44;
+
+        /** CANrange time-of-flight proximity sensor */
+        public static final int CANRANGE = 51;
 
         // ----- CANBUS_DRIVE (Big Justice) -----
         public static final int PIGEON = 13;

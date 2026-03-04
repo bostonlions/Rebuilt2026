@@ -126,9 +126,12 @@ public final class RobotContainer {
         // Right stick click: prepare to climb TODO ensure intake is stowed first
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.R_JOYSTICK))
             .onTrue(new InstantCommand(() -> climber.prepToClimb(), climber));
-        // Left stick click: stow the climber
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.L_JOYSTICK))
+        // Screenshot/Share button (button 7): stow the climber
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.BACK))
             .onTrue(new InstantCommand(() -> climber.stow(), climber));
+        // Left stick click: lower hooks to Prepare
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.L_JOYSTICK))
+            .onTrue(new InstantCommand(() -> climber.setLowerHooks(Climber.Position.Prepare), climber));
 
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
