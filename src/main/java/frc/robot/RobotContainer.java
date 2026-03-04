@@ -170,6 +170,11 @@ public final class RobotContainer {
         private final double speedFactor;
         private final double kSwerveDeadband;
 
+        /** Ethnix right switch (Axis 6): 0 = fast, >0 = 25% speed */
+        private static final int kSlowDriveAxis = 6;
+        private static final double kSlowDriveScale = 0.25;
+        private static final double kSlowDriveThreshold = 0.05;
+
         private static ControlBoard getInstance() {
             if (mInstance == null) mInstance = new ControlBoard();
             return mInstance;
@@ -230,7 +235,8 @@ public final class RobotContainer {
 
                 double scaled_x = MathUtil.applyDeadband(forwardAxis, Math.abs(deadband_vector.getX()));
                 double scaled_y = MathUtil.applyDeadband(strafeAxis, Math.abs(deadband_vector.getY()));
-                return new Translation2d(scaled_x, scaled_y).times(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
+                double driveScale = driver.getRawAxis(kSlowDriveAxis) > kSlowDriveThreshold ? kSlowDriveScale : 1.0;
+                return new Translation2d(scaled_x, scaled_y).times(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond) * driveScale);
             }
         }
 
@@ -240,8 +246,9 @@ public final class RobotContainer {
             rotAxis *= speedFactor;
 
             if (Math.abs(rotAxis) < kSwerveDeadband) return 0.0;
+            double driveScale = driver.getRawAxis(kSlowDriveAxis) > kSlowDriveThreshold ? kSlowDriveScale : 1.0;
             return SwerveConstants.MaxAngularRate *
-                (rotAxis - (Math.signum(rotAxis) * kSwerveDeadband)) / (1 - kSwerveDeadband);
+                (rotAxis - (Math.signum(rotAxis) * kSwerveDeadband)) / (1 - kSwerveDeadband) * driveScale;
         }
 
         /** Non-mambo controller. Returns positions from -1 to 1 */

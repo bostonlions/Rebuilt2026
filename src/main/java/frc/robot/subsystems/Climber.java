@@ -59,6 +59,8 @@ public final class Climber extends SubsystemBase {
     private static final double kElevatorCANrangeTolerancePercent = 0.02;
     /** Max duty cycle for elevator when driving toward CANrange target. */
     private static final double kElevatorDutyMax = 0.5;
+    /** Min duty when approaching target—avoids slow crawl near goal. */
+    private static final double kElevatorDutyMin = 0.2;
     private final double elevatorForceTorque = -10;
     private final double elevatorForceVelocityLimit = -0.5;
     private final double elevatorLimitRotations = -5;
@@ -83,7 +85,7 @@ public final class Climber extends SubsystemBase {
 
     private final Map<Position, Angle> lowerHookPositions = Map.of( // rotations are CANCoder absolute positions (0–1)
         Position.Stow, Rotations.of(0.370),
-        Position.Prepare, Rotations.of(0.557),
+        Position.Prepare, Rotations.of(0.547),
         Position.Clinch, Rotations.of(0.680),
         Position.Grab, Rotations.of(0.715),
         Position.Hook, Rotations.of(0.715),
@@ -124,8 +126,8 @@ public final class Climber extends SubsystemBase {
                 .withKA(0.01)
                 .withKS(0.05))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicAcceleration(15)
-                .withMotionMagicCruiseVelocity(15))
+                .withMotionMagicAcceleration(100)
+                .withMotionMagicCruiseVelocity(100))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(30)
                 .withPeakReverseTorqueCurrent(-30))
@@ -387,17 +389,15 @@ public final class Climber extends SubsystemBase {
     }
 
     /**
-     * Prepare to climb: Elevator and upper hooks to top, lower hooks to "clinch"
+     * Prepare to climb: Elevator and upper hooks to top, lower hooks to Prepare.
+     * All move together at the same time.
      * WARNING: If elevator is already up and upper hooks are stowed, this will breach the rules.
      * Call this only with the elevator down, or with the upper hooks already out.
      */
     public void prepToClimb() {
         setUpperHooks(Position.Top);
+        setElevator(Position.Top);
         setLowerHooks(Position.Prepare);
-        CommandScheduler.getInstance().schedule(
-            new WaitUntilCommand(() -> upperHooksAtTarget())
-                .andThen(new InstantCommand(() -> setElevator(Position.Top)))
-        );
     }
 
     /**
@@ -434,7 +434,11 @@ public final class Climber extends SubsystemBase {
                 elevatorMotor.setControl(new DutyCycleOut(0));
             } else {
                 double error = elevatorTarget - elevCurrent;
-                elevatorMotor.setControl(new DutyCycleOut(MathUtil.clamp(error * 5.0, -kElevatorDutyMax, kElevatorDutyMax)));
+                double duty = MathUtil.clamp(error * 5.0, -kElevatorDutyMax, kElevatorDutyMax);
+                if (Math.abs(duty) > 0 && Math.abs(duty) < kElevatorDutyMin) {
+                    duty = Math.signum(duty) * kElevatorDutyMin;
+                }
+                elevatorMotor.setControl(new DutyCycleOut(duty));
             }
             upperHookMotor.setControl(new MotionMagicDutyCycle(upperHookMotor.getPosition().getValueAsDouble()));
             return;
@@ -465,6 +469,9 @@ public final class Climber extends SubsystemBase {
             } else {
                 double error = elevatorTarget - current;
                 double duty = MathUtil.clamp(error * 5.0, -kElevatorDutyMax, kElevatorDutyMax);
+                if (Math.abs(duty) > 0 && Math.abs(duty) < kElevatorDutyMin) {
+                    duty = Math.signum(duty) * kElevatorDutyMin;
+                }
                 elevatorMotor.setControl(new DutyCycleOut(duty));
             }
         } else {
