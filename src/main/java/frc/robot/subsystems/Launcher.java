@@ -76,8 +76,12 @@ public final class Launcher extends SubsystemBase {
     private final DutyCycleOut feederSpinnerTestRequest = new DutyCycleOut(0.30);
     private final DutyCycleOut feederRollerTestRequest  = new DutyCycleOut(0.40);
     private final DutyCycleOut launcherTestRequest      = new DutyCycleOut(0.60);
+
+    private double launchP = 0.02;
+    private double launchD = 0.0;
+    private double launchI = 0.1;
     private final Slot0Configs gains = new Slot0Configs()
-        .withKP(4.8).withKD(0.1).withKV(0.12).withKS(0.2).withKA(0.01); // TODO: tune this, maybe different for each motor
+        .withKP(0.1).withKD(0.1).withKV(0.12).withKS(0.2).withKA(0.01); // TODO: tune this, maybe different for each motor
     private final MotionMagicConfigs motionMagicConfigs = new MotionMagicConfigs()
         .withMotionMagicCruiseVelocity(60)
         .withMotionMagicAcceleration(100)
@@ -128,12 +132,6 @@ public final class Launcher extends SubsystemBase {
             throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
         });
 
-        launchMotor.getConfigurator().apply(new TalonFXConfiguration()
-            .withSlot0(gains).withMotionMagic(motionMagicConfigs)
-            .withVoltage(new VoltageConfigs()
-                .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
-            .withTorqueCurrent(new TorqueCurrentConfigs()
-                .withPeakForwardTorqueCurrent(Amps.of(30)).withPeakReverseTorqueCurrent(Amps.of(-30))));
         pitchMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withSlot0(gains).withMotionMagic(motionMagicConfigs)
             .withTorqueCurrent(new TorqueCurrentConfigs()
@@ -156,6 +154,19 @@ public final class Launcher extends SubsystemBase {
         setPitch(20);
 
         initTrimmer();
+    }
+
+    private void setConfig() {
+        launchMotor.getConfigurator().apply(new TalonFXConfiguration()
+            .withSlot0(new Slot0Configs()
+                .withKP(launchP)
+                .withKI(launchI)
+                .withKD(launchD)
+            ).withMotionMagic(motionMagicConfigs)
+            .withVoltage(new VoltageConfigs()
+                .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
+            .withTorqueCurrent(new TorqueCurrentConfigs()
+                .withPeakForwardTorqueCurrent(Amps.of(30)).withPeakReverseTorqueCurrent(Amps.of(-30))));
     }
 
     private double getPitch() {
@@ -482,6 +493,24 @@ public final class Launcher extends SubsystemBase {
                 simpleLaunchRpm = Math.max(0.0, simpleLaunchRpm + (up ? delta : -delta));
                 System.out.println("[Launcher] Updated simple launch RPM target: " + simpleLaunchRpm);
             }
+        );
+        trimmer.add(
+            "Launcher PID",
+            "Launch P",
+            () -> launchP,
+            (up) -> {launchP = Trimmer.increment(launchP, 0.001, 0.2, up); setConfig();}
+        );
+        trimmer.add(
+            "Launcher PID",
+            "Launch D",
+            () -> launchD,
+            (up) -> {launchD = Trimmer.increment(launchD, 0.001, 0.2, up); setConfig();}
+        );
+        trimmer.add(
+            "Launcher PID",
+            "Launch I",
+            () -> launchI,
+            (up) -> {launchI = Trimmer.increment(launchI, 0.001, 0.2, up); setConfig();}
         );
     }
 }

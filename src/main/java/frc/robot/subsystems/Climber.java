@@ -39,7 +39,7 @@ import java.util.Map;
 
 public final class Climber extends SubsystemBase {
     private static Climber instance = null;
-    public enum Position {Clinch, Grab, Stow, Bottom, L1, Top}
+    public enum Position {Clinch, Prepare, Grab, Stow, Bottom, L1, Top}
     private enum Request {Stow, Ready, L1, L3}
     private Request request = Request.Ready;
     private final double lowerClosedLoopErrorTolerance = 0.006944;
@@ -66,9 +66,10 @@ public final class Climber extends SubsystemBase {
     private static final double kLeftStickTargetModeThreshold = 0.15;
 
     private final Map<Position, Angle> lowerHookPositions = Map.of( // rotations are CANCoder absolute positions (0–1)
-        Position.Stow, Rotations.of(0.399),
-        Position.Clinch, Rotations.of(0.555),
-        Position.Grab, Rotations.of(0.663)
+        Position.Stow, Rotations.of(0.370),
+        Position.Prepare, Rotations.of(0.557),
+        Position.Clinch, Rotations.of(0.670),
+        Position.Grab, Rotations.of(0.614)
     );
     private final Map<Position, Angle> upperHookPositions = Map.of( // rotations are motor rotations
         Position.Stow, Rotations.of(0),
@@ -105,8 +106,11 @@ public final class Climber extends SubsystemBase {
                 .withKA(0.01)
                 .withKS(0.05))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicAcceleration(10)
-                .withMotionMagicCruiseVelocity(5))
+                .withMotionMagicAcceleration(15)
+                .withMotionMagicCruiseVelocity(15))
+            .withTorqueCurrent(new TorqueCurrentConfigs()
+                .withPeakForwardTorqueCurrent(30)
+                .withPeakReverseTorqueCurrent(-30))
             .withFeedback(new FeedbackConfigs()
                 .withFeedbackRemoteSensorID(Ports.LOWER_HOOK_CANCODER)
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
@@ -332,7 +336,7 @@ public final class Climber extends SubsystemBase {
      */
     public void prepToClimb() {
         setUpperHooks(Position.Top);
-        setLowerHooks(Position.Clinch);
+        setLowerHooks(Position.Prepare);
         CommandScheduler.getInstance().schedule(
             new WaitUntilCommand(() -> upperHooksAtTarget())
                 .andThen(new InstantCommand(() -> setElevator(Position.Top)))
