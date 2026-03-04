@@ -55,6 +55,8 @@ public final class Robot extends TimedRobot {
         SmartDashboard.putNumber("CANrange/Distance", distanceM);
         NetworkTableInstance.getDefault().getTable("CANrange").getEntry("Distance").setDouble(distanceM);
 
+        Auto.getInstance().publishToDashboard();
+
         NetworkTable tableA = NetworkTableInstance.getDefault().getTable("limelight-a");
         double[] poseA = tableA.getEntry("botpose_wpiblue").getDoubleArray(new double[6]);
         double[] bptsA = tableA.getEntry("botpose_targetspace").getDoubleArray(new double[6]);

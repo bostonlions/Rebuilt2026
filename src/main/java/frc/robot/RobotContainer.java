@@ -28,6 +28,7 @@ import frc.robot.subsystems.Launcher;
 import frc.robot.subsystems.Drive.Drivetrain;
 import frc.robot.subsystems.Drive.SwerveConstants;
 import frc.robot.subsystems.Trimmer;
+import frc.robot.Auto;
 
 public final class RobotContainer {
     private final Telemetry logger = new Telemetry(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
@@ -135,9 +136,13 @@ public final class RobotContainer {
 
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
-         * These commands are marked to run in disabled mode, so we can
-         * tweak parameters and choose auto commands prior to the match starting.
+         * These commands run in disabled mode (ignoringDisable), so you can
+         * tweak parameters and choose auto commands before the match.
+         *
+         * To select autonomous: D-pad LEFT/RIGHT = cycle subsystems (e.g. "Autonomous"),
+         * D-pad RIGHT = cycle items within subsystem, D-pad UP/DOWN = cycle auto routine.
          */
+        SmartDashboard.putData(Auto.getInstance());
         SmartDashboard.putData(trimmer);
         new Trigger(() -> (controller.operator.getController().getPOV() == 270)).onTrue(trimmer.nextSubsystemCommand());
         new Trigger(() -> (controller.operator.getController().getPOV() == 90)).onTrue(trimmer.nextItemCommand());
@@ -146,21 +151,7 @@ public final class RobotContainer {
     }
 
     public Command getAutonomousCommand() {
-        // Simple drive forward auton for an example:
-        return Commands.sequence(
-            // Reset our field centric heading to match the robot
-            // facing away from our alliance station wall (0 deg).
-            drivetrain.runOnce(() -> drivetrain.seedFieldCentric(Rotation2d.kZero)),
-            // Then slowly drive forward (away from us) for 5 seconds.
-            drivetrain.applyRequest(() ->
-                SwerveConstants.drive.withVelocityX(0.5)
-                    .withVelocityY(0)
-                    .withRotationalRate(0)
-            )
-            .withTimeout(5.0),
-            // Finally idle for the rest of auton
-            drivetrain.applyRequest(() -> SwerveConstants.idle)
-        );
+        return Auto.getInstance().getCommand();
     }
 
     public static final class ControlBoard {
