@@ -1,7 +1,9 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.configs.CANrangeConfiguration;
 import com.ctre.phoenix6.configs.FeedbackConfigs;
+import com.ctre.phoenix6.configs.FovParamsConfigs;
 import com.ctre.phoenix6.configs.MagnetSensorConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
@@ -12,6 +14,7 @@ import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.CANrange;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -33,7 +36,6 @@ import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.Millimeters;
 import static edu.wpi.first.units.Units.Rotations;
 
-import frc.robot.Robot;
 import frc.robot.Robot.Ports;
 
 import static frc.robot.Robot.kCANBusJustice;
@@ -49,39 +51,39 @@ public final class Climber extends SubsystemBase {
     private final double lowerClosedLoopErrorTolerance = 0.006944;
     private final double upperClosedLoopErrorTolerance = Millimeters.of(5).magnitude() / (24.0/45.0 *
         Inches.of(0.375).in(Millimeters));
-    private final double elevatorClosedLoopErrorTolerance = 1.71455;
 
     /** CANrange distance (m) for elevator zero/bottom. Within 2% = at position. */
-    private static final double kElevatorCANrangeZero = 0.04;
+    private static final double elevatorCANrangeZero = 0.04;
     /** CANrange distance (m) for elevator top. Within 2% = at position. */
-    private static final double kElevatorCANrangeTop = 0.245;
+    private static final double elevatorCANrangeTop = 0.245;
+    // Max range before we assume the canrange sees no reflector so we shouldn't trust it
+    private static final double elevatorCANrangeMax = 0.35;
+    // Seeing nothing at all looks like a small distance and large StdDev
+    private static final double elevatorStdDevDistThreshold = 0.12;
+    private static final double elevatorMaxStdDev = 0.015;
     /** Tolerance: within this fraction of target = at target. */
-    private static final double kElevatorCANrangeTolerancePercent = 0.02;
+    private static final double elevatorCANrangeTolerancePercent = 0.02;
     /** Max duty cycle for elevator when driving toward CANrange target. */
-    private static final double kElevatorDutyMax = 0.5;
+    private static final double elevatorDutyMax = 0.5;
     /** Min duty when approaching target—avoids slow crawl near goal. */
-    private static final double kElevatorDutyMin = 0.2;
-    private final double elevatorForceTorque = -10;
-    private final double elevatorForceVelocityLimit = -0.5;
-    private final double elevatorLimitRotations = -5;
-    private final double elevatorTargetTolerance = 2;
+    private static final double elevatorDutyMin = 0.2;
     private final double hookForceTorque = 5;
     private final double hookForceVelocityLimit = 0.5;
     private final double hookLimitRotations = 15; // FIXME
     private final double hookTargetTolerance = 2;
     /** Elevator positions from CANrange distance (m). Stow/Bottom = zero, Top = top. */
     private final Map<Position, Double> elevatorPositions = Map.of(
-        Position.Stow, kElevatorCANrangeZero,
-        Position.Bottom, kElevatorCANrangeZero,
-        Position.L1, (kElevatorCANrangeZero + kElevatorCANrangeTop) / 2,  // intermediate
-        Position.Top, kElevatorCANrangeTop
+        Position.Stow, elevatorCANrangeZero,
+        Position.Bottom, elevatorCANrangeZero,
+        Position.L1, (elevatorCANrangeZero + elevatorCANrangeTop) / 2,  // intermediate
+        Position.Top, elevatorCANrangeTop
     );
 
     /** Left stick Y must exceed this to enter target mode (push up or pull down); else motion stops. */
-    private static final double kLeftStickTargetModeThreshold = 0.15;
+    private static final double leftStickTargetModeThreshold = 0.15;
 
     /** When pulling down, if lower hook CANCoder changes by this much (rotations), move to Hook position. */
-    private static final double kLowerHookChangeThreshold = 0.01;
+    private static final double lowerHookChangeThreshold = 0.01;
 
     private final Map<Position, Angle> lowerHookPositions = Map.of( // rotations are CANCoder absolute positions (0–1)
         Position.Stow, Rotations.of(0.370),
@@ -103,6 +105,7 @@ public final class Climber extends SubsystemBase {
     private final TalonFX upperHookMotor = new TalonFX(Ports.UPPER_HOOK_MOTOR, kCANBusJustice);
     private final TalonFX elevatorMotor = new TalonFX(Ports.ELEVATOR_MOTOR, kCANBusJustice);
     private final CANcoder lowerHookCANcoder = new CANcoder(Ports.LOWER_HOOK_CANCODER, kCANBusJustice);
+    private final CANrange canRange = new CANrange(Ports.CANRANGE, kCANBusJustice);
 
     public static Climber getInstance() {
         if (instance == null) instance = new Climber();
@@ -110,7 +113,9 @@ public final class Climber extends SubsystemBase {
     }
 
     private Climber() {
-        // canRange.getConfigurator().apply(new CANrangeConfiguration());
+        canRange.getConfigurator().apply(new CANrangeConfiguration()
+            .withFovParams(new FovParamsConfigs().withFOVRangeX(7).withFOVRangeY(7))
+        );
         lowerHookCANcoder.getConfigurator().apply(new MagnetSensorConfigs()
             .withMagnetOffset(0)
             .withAbsoluteSensorDiscontinuityPoint(1));
@@ -175,10 +180,10 @@ public final class Climber extends SubsystemBase {
 
         if (forcingElevatorDown || forcingHooksUp) return;
 
-        boolean leftPullDown = scaledUH > kLeftStickTargetModeThreshold;
-        boolean rightPullDown = scaledRightY > kLeftStickTargetModeThreshold;
-        boolean leftPushUp = scaledUH < -kLeftStickTargetModeThreshold;
-        boolean rightPushUp = scaledRightY < -kLeftStickTargetModeThreshold;
+        boolean leftPullDown = scaledUH > leftStickTargetModeThreshold;
+        boolean rightPullDown = scaledRightY > leftStickTargetModeThreshold;
+        boolean leftPushUp = scaledUH < -leftStickTargetModeThreshold;
+        boolean rightPushUp = scaledRightY < -leftStickTargetModeThreshold;
         boolean anyPullDown = leftPullDown || rightPullDown;
         boolean anyPushUp = leftPushUp || rightPushUp;
 
@@ -202,7 +207,7 @@ public final class Climber extends SubsystemBase {
                 if (Double.isNaN(lowerHookBaselineWhenPullingDown)) {
                     lowerHookBaselineWhenPullingDown = currentLowerHookPos;
                     setLowerHooksNeutral();
-                } else if (Math.abs(currentLowerHookPos - lowerHookBaselineWhenPullingDown) > kLowerHookChangeThreshold) {
+                } else if (Math.abs(currentLowerHookPos - lowerHookBaselineWhenPullingDown) > lowerHookChangeThreshold) {
                     setLowerHooks(Position.Hook);
                 } else {
                     setLowerHooksNeutral();
@@ -351,8 +356,8 @@ public final class Climber extends SubsystemBase {
         System.out.println("[Climber] setElevatorHold");
         double pos = getElevatorCANrangeMeters();
         // Don't overwrite Top target when releasing—let elevator finish reaching top
-        if (!Double.isNaN(elevatorTarget) && Math.abs(elevatorTarget - kElevatorCANrangeTop) < 0.01
-                && pos < kElevatorCANrangeTop - 0.005) {
+        if (!Double.isNaN(elevatorTarget) && Math.abs(elevatorTarget - elevatorCANrangeTop) < 0.01
+                && pos < elevatorCANrangeTop - 0.005) {
             return;  // Keep driving toward Top
         }
         elevatorTarget = pos;
@@ -369,12 +374,12 @@ public final class Climber extends SubsystemBase {
 
     private double getElevatorCANrangeMeters() {
         // Phoenix Pro "Distance" signal = same value in meters (0.035=zero, 0.245=top)
-        return Robot.canRange.getDistance().getValue().in(Meters);
+        return canRange.getDistance().getValue().in(Meters);
     }
 
     private boolean isElevatorWithinTolerance(double targetM) {
         double current = getElevatorCANrangeMeters();
-        double tol = Math.max(0.001, targetM * kElevatorCANrangeTolerancePercent);
+        double tol = Math.max(0.001, targetM * elevatorCANrangeTolerancePercent);
         return Math.abs(current - targetM) <= tol;
     }
 
@@ -413,7 +418,7 @@ public final class Climber extends SubsystemBase {
         );
     }
 
-    private double elevatorMinTorque = 0, elevatorMaxTorque = 0, hookMinTorque = 0, hookMaxTorque = 0, elevatorSpeed = 0, hookSpeed = 0;
+    private double elevatorMinTorque = 0, elevatorMaxTorque = 0, hookMinTorque = 0, hookMaxTorque = 0, hookSpeed = 0;
 
     private boolean forcingElevatorDown = false;
     private boolean forcingHooksUp = false;
@@ -426,6 +431,13 @@ public final class Climber extends SubsystemBase {
     }
 
     @Override
+    public void simulationPeriodic() {
+        // CANrange returns 0 in sim by default; set a value so elevator logic and dashboard work
+        // TODO - what's this for?
+        canRange.getSimState().setDistance(0.1);
+    }
+
+    @Override
     public void periodic() {
         if (DriverStation.isDisabled()) {
             elevatorTarget = getElevatorCANrangeMeters();
@@ -434,9 +446,9 @@ public final class Climber extends SubsystemBase {
                 elevatorMotor.setControl(new DutyCycleOut(0));
             } else {
                 double error = elevatorTarget - elevCurrent;
-                double duty = MathUtil.clamp(error * 5.0, -kElevatorDutyMax, kElevatorDutyMax);
-                if (Math.abs(duty) > 0 && Math.abs(duty) < kElevatorDutyMin) {
-                    duty = Math.signum(duty) * kElevatorDutyMin;
+                double duty = MathUtil.clamp(error * 5.0, -elevatorDutyMax, elevatorDutyMax);
+                if (Math.abs(duty) > 0 && Math.abs(duty) < elevatorDutyMin) {
+                    duty = Math.signum(duty) * elevatorDutyMin;
                 }
                 elevatorMotor.setControl(new DutyCycleOut(duty));
             }
@@ -452,25 +464,31 @@ public final class Climber extends SubsystemBase {
         if (upperHooksTorque < hookMinTorque) hookMinTorque = upperHooksTorque;
         if (upperHooksTorque > hookMaxTorque) hookMaxTorque = upperHooksTorque;
 
-        elevatorSpeed = elevatorMotor.getVelocity().getValueAsDouble();
-        if (forcingElevatorDown) {
-            if (isElevatorWithinTolerance(kElevatorCANrangeZero)) {
+        double elevatorCurrent = getElevatorCANrangeMeters();
+        double elevatorStdDev = canRange.getDistanceStdDev().getValueAsDouble();
+        if (
+            elevatorCurrent > elevatorCANrangeMax ||
+            ((elevatorStdDev == 0 || elevatorStdDev > elevatorMaxStdDev) && elevatorCurrent < elevatorStdDevDistThreshold)
+        ) {
+            System.out.println("Elevator CANrange failure: dist " + elevatorCurrent + ", stdDev " + elevatorStdDev + " - disabling elevator");
+            elevatorMotor.setControl(new DutyCycleOut(0));
+        } else if (forcingElevatorDown) {
+            if (isElevatorWithinTolerance(elevatorCANrangeZero)) {
                 System.out.println("Elevator bottom limit hit (CANrange at zero)");
                 forcingElevatorDown = false;
-                elevatorTarget = kElevatorCANrangeZero;
+                elevatorTarget = elevatorCANrangeZero;
                 elevatorMotor.setControl(new DutyCycleOut(0));
             } else {
                 elevatorMotor.setControl(new DutyCycleOut(-0.05));
             }
         } else if (!Double.isNaN(elevatorTarget)) {
-            double current = getElevatorCANrangeMeters();
             if (isElevatorWithinTolerance(elevatorTarget)) {
                 elevatorMotor.setControl(new DutyCycleOut(0));
             } else {
-                double error = elevatorTarget - current;
-                double duty = MathUtil.clamp(error * 5.0, -kElevatorDutyMax, kElevatorDutyMax);
-                if (Math.abs(duty) > 0 && Math.abs(duty) < kElevatorDutyMin) {
-                    duty = Math.signum(duty) * kElevatorDutyMin;
+                double error = elevatorTarget - elevatorCurrent;
+                double duty = MathUtil.clamp(error * 5.0, -elevatorDutyMax, elevatorDutyMax);
+                if (Math.abs(duty) > 0 && Math.abs(duty) < elevatorDutyMin) {
+                    duty = Math.signum(duty) * elevatorDutyMin;
                 }
                 elevatorMotor.setControl(new DutyCycleOut(duty));
             }
@@ -494,6 +512,7 @@ public final class Climber extends SubsystemBase {
         builder.setActuator(true);
 
         builder.addDoubleProperty("Elevator CANrange (m)", () -> getElevatorCANrangeMeters(), null);
+        builder.addDoubleProperty("Elevator CANrange stdev", () -> canRange.getDistanceStdDev().getValueAsDouble(), null);
         builder.addDoubleProperty("Upper hook rot", () -> upperHookMotor.getPosition().getValueAsDouble(), null);
         builder.addDoubleProperty("Lower hook rot", () -> lowerHookMotor.getPosition().getValueAsDouble(), null);
         builder.addDoubleProperty("Lower hook CANCoder", () -> lowerHookCANcoder.getPosition().getValueAsDouble(), null);

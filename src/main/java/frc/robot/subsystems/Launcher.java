@@ -74,6 +74,8 @@ public final class Launcher extends SubsystemBase {
     private final DutyCycleOut feederMotionRequest = new DutyCycleOut(1);
     // Separate test speeds: spinner 25%, roller 75%, launcher 10%
     private final DutyCycleOut feederSpinnerTestRequest = new DutyCycleOut(0.30);
+    /** Slow feeder spinner when intake is running (helps move note toward launcher). */
+    private final DutyCycleOut feederSpinnerWithIntakeRequest = new DutyCycleOut(0.5);
     private final DutyCycleOut feederRollerTestRequest  = new DutyCycleOut(0.40);
     private final DutyCycleOut launcherTestRequest      = new DutyCycleOut(0.60);
 
@@ -110,7 +112,7 @@ public final class Launcher extends SubsystemBase {
     public final boolean shooterIsGoingFastEnough() {return shooterSpeedReady;}
 
     // Simple-toggle launcher RPM target, adjustable via Trimmer at runtime
-    private double simpleLaunchRpm = 2200.0;
+    private double simpleLaunchRpm = 1800.0;
 
     public static Launcher getInstance() {
         if (instance == null) instance = new Launcher();
@@ -384,6 +386,11 @@ public final class Launcher extends SubsystemBase {
     @Override
     public void periodic() {
         if (mode != Mode.OFF) prepToShoot();
+        // Run feeder spinner at slow rate when intake is spinning (unless we're firing)
+        if (mode != Mode.FIRE) {
+            boolean intakeSpinning = Intake.getInstance().isSpinning();
+            feeder_spinner.setControl(intakeSpinning ? feederSpinnerWithIntakeRequest : brake);
+        }
         double pitchTorque = pitchMotor.getTorqueCurrent().getValueAsDouble();
         if (pitchTorque < pitchMinTorque) pitchMinTorque = pitchTorque;
         if (pitchTorque > pitchMaxTorque) pitchMaxTorque = pitchTorque;

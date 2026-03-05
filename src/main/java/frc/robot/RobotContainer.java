@@ -8,7 +8,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -28,7 +27,6 @@ import frc.robot.subsystems.Launcher;
 import frc.robot.subsystems.Drive.Drivetrain;
 import frc.robot.subsystems.Drive.SwerveConstants;
 import frc.robot.subsystems.Trimmer;
-import frc.robot.Auto;
 
 public final class RobotContainer {
     private final Telemetry logger = new Telemetry(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
@@ -137,12 +135,12 @@ public final class RobotContainer {
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
          * These commands run in disabled mode (ignoringDisable), so you can
-         * tweak parameters and choose auto commands before the match.
+         * tweak parameters and choose Auto commands before the match.
          *
          * To select autonomous: D-pad LEFT/RIGHT = cycle subsystems (e.g. "Autonomous"),
-         * D-pad RIGHT = cycle items within subsystem, D-pad UP/DOWN = cycle auto routine.
+         * D-pad RIGHT = cycle items within subsystem, D-pad UP/DOWN = cycle Auto routine.
          */
-        SmartDashboard.putData(Auto.getInstance());
+        SmartDashboard.putData(Auton.getInstance());
         SmartDashboard.putData(trimmer);
         new Trigger(() -> (controller.operator.getController().getPOV() == 270)).onTrue(trimmer.nextSubsystemCommand());
         new Trigger(() -> (controller.operator.getController().getPOV() == 90)).onTrue(trimmer.nextItemCommand());
@@ -151,7 +149,7 @@ public final class RobotContainer {
     }
 
     public Command getAutonomousCommand() {
-        return Auto.getInstance().getCommand();
+        return Auton.getInstance().getCommand();
     }
 
     public static final class ControlBoard {

@@ -120,6 +120,11 @@ public final class Intake extends SubsystemBase {
         setSpinner(!spinning);
     }
 
+    /** Whether the intake spinner is currently running. */
+    public boolean isSpinning() {
+        return spinning;
+    }
+
     @Override
     public void initSendable(SendableBuilder builder) {
         builder.setSmartDashboardType("Intake");
