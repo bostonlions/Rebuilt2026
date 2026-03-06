@@ -9,8 +9,8 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TorqueCurrentConfigs;
 import com.ctre.phoenix6.configs.VoltageConfigs;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
 import com.ctre.phoenix6.controls.MotionMagicVelocityDutyCycle;
-import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.StaticBrake;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -57,8 +57,8 @@ public final class Launcher extends SubsystemBase {
     private final double pitchLimitRotations = -0.25;
 
     private final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-100., 260.); // in degrees
-    private final double c11Offset = .6225; // 11-tooth cancoder value at 0 degrees
-    private final double c12Offset = .4840; // 12-tooth cancoder value at 0 degrees
+    private final double c11Offset = 0.102; // 11-tooth cancoder value at 0 degrees
+    private final double c12Offset = 0.929; // 12-tooth cancoder value at 0 degrees
     private final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
 
     private final Translation2d turretPosRobotRel = new Translation2d(-0.033147, 0.1394968); // coordinates are in meters following wpiblue coordinate convention
@@ -70,7 +70,6 @@ public final class Launcher extends SubsystemBase {
     private final double launchToTurretSpeedScale = Double.NaN; // FIXME -- launch motor revs * resulting fly wheel revs  * flywheel circumference / 2  ???
 
     private final StaticBrake brake = new StaticBrake();
-    private final MotionMagicVoltage motionRequest = new MotionMagicVoltage(0);
     private final DutyCycleOut feederMotionRequest = new DutyCycleOut(1);
     // Separate test speeds: spinner 25%, roller 75%, launcher 10%
     private final DutyCycleOut feederSpinnerTestRequest = new DutyCycleOut(0.30);
@@ -82,12 +81,7 @@ public final class Launcher extends SubsystemBase {
     private double launchP = 0.02;
     private double launchD = 0.0;
     private double launchI = 0.1;
-    private final Slot0Configs gains = new Slot0Configs()
-        .withKP(0.1).withKD(0.1).withKV(0.12).withKS(0.2).withKA(0.01); // TODO: tune this, maybe different for each motor
-    private final MotionMagicConfigs motionMagicConfigs = new MotionMagicConfigs()
-        .withMotionMagicCruiseVelocity(60)
-        .withMotionMagicAcceleration(100)
-        .withMotionMagicJerk(1000);
+
     private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBusJustice);
     private final TalonFX pitchMotor = new TalonFX(Ports.PITCH_MOTOR, kCANBusJustice);
     private final TalonFX yawMotor = new TalonFX(Ports.YAW_MOTOR, kCANBusJustice);
@@ -135,14 +129,22 @@ public final class Launcher extends SubsystemBase {
         });
 
         pitchMotor.getConfigurator().apply(new TalonFXConfiguration()
-            .withSlot0(gains).withMotionMagic(motionMagicConfigs)
+            .withSlot0(new Slot0Configs().withKP(0.1).withKI(0.2))
+            .withMotionMagic(new MotionMagicConfigs()
+                .withMotionMagicCruiseVelocity(60)
+                .withMotionMagicAcceleration(100)
+                .withMotionMagicJerk(1000))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(Amps.of(15)).withPeakReverseTorqueCurrent(Amps.of(-15)))
         );
 
         if (yawMotor.getConfigurator().apply(
             new TalonFXConfiguration()
-            .withSlot0(gains).withMotionMagic(motionMagicConfigs)
+            .withSlot0(new Slot0Configs().withKP(0.1).withKI(0.2))
+            .withMotionMagic(new MotionMagicConfigs()
+                .withMotionMagicCruiseVelocity(60)
+                .withMotionMagicAcceleration(100)
+                .withMotionMagicJerk(1000))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(Amps.of(40)).withPeakReverseTorqueCurrent(Amps.of(-40)))
         ).isOK()) {
@@ -151,20 +153,19 @@ public final class Launcher extends SubsystemBase {
         else DriverStation.reportError("Yaw motor config apply failed so the motor couldn't be zeroed", true);
 
         forcePitchDown();
-
         setYaw(0);
         setPitch(20);
-
+        setConfig();
         initTrimmer();
     }
 
     private void setConfig() {
         launchMotor.getConfigurator().apply(new TalonFXConfiguration()
-            .withSlot0(new Slot0Configs()
-                .withKP(launchP)
-                .withKI(launchI)
-                .withKD(launchD)
-            ).withMotionMagic(motionMagicConfigs)
+            .withSlot0(new Slot0Configs().withKP(launchP).withKI(launchI).withKD(launchD))
+            .withMotionMagic(new MotionMagicConfigs()
+                .withMotionMagicCruiseVelocity(60)
+                .withMotionMagicAcceleration(100)
+                .withMotionMagicJerk(1000))
             .withVoltage(new VoltageConfigs()
                 .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
             .withTorqueCurrent(new TorqueCurrentConfigs()
@@ -180,7 +181,7 @@ public final class Launcher extends SubsystemBase {
             System.out.println("Invalid pitch target: " + degrees);
             return;
         }
-        pitchMotor.setControl(motionRequest.withPosition((degrees - pitchBounds.getFirst()) / pitchGearRatio));
+        pitchMotor.setControl(new MotionMagicDutyCycle((degrees - pitchBounds.getFirst()) / pitchGearRatio));
     }
 
     private double calcYawDegrees() {
@@ -195,7 +196,7 @@ public final class Launcher extends SubsystemBase {
     }
 
     private void setYaw(double degrees) {
-        yawMotor.setControl(motionRequest.withPosition(-MathUtil.inputModulus(degrees, yawBounds.getFirst(), yawBounds.getSecond()) * yawGearRatio / 360.));
+        yawMotor.setControl(new MotionMagicDutyCycle(-MathUtil.inputModulus(degrees, yawBounds.getFirst(), yawBounds.getSecond()) * yawGearRatio / 360.));
     }
 
     private Pair<Translation2d, Translation2d> targetVectorAndSpeeds() {
@@ -367,7 +368,7 @@ public final class Launcher extends SubsystemBase {
 
         if (newMode == Mode.OFF) {
             launchMotor.setControl(brake);
-            yawMotor.setControl(motionRequest);
+            setYaw(0);
             setPitch(pitchBounds.getFirst());
         }
         else {

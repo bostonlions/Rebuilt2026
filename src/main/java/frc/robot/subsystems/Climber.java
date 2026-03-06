@@ -53,7 +53,7 @@ public final class Climber extends SubsystemBase {
         Inches.of(0.375).in(Millimeters));
 
     /** CANrange distance (m) for elevator zero/bottom. Within 2% = at position. */
-    private static final double elevatorCANrangeZero = 0.04;
+    private static final double elevatorCANrangeZero = 0.03;
     /** CANrange distance (m) for elevator top. Within 2% = at position. */
     private static final double elevatorCANrangeTop = 0.245;
     // Max range before we assume the canrange sees no reflector so we shouldn't trust it
@@ -96,7 +96,7 @@ public final class Climber extends SubsystemBase {
     private final Map<Position, Angle> upperHookPositions = Map.of( // rotations are motor rotations
         Position.Stow, Rotations.of(0),
         Position.Bottom, Rotations.of(-260),
-        Position.L1, Rotations.of(-100),      //FIXME
+        Position.L1, Rotations.of(-100),
         Position.Top, Rotations.of(-64)
     );
 
@@ -131,8 +131,8 @@ public final class Climber extends SubsystemBase {
                 .withKA(0.01)
                 .withKS(0.05))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicAcceleration(100)
-                .withMotionMagicCruiseVelocity(100))
+                .withMotionMagicAcceleration(200)
+                .withMotionMagicCruiseVelocity(200))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(30)
                 .withPeakReverseTorqueCurrent(-30))
@@ -163,7 +163,9 @@ public final class Climber extends SubsystemBase {
                 .withPeakReverseTorqueCurrent(-20))
         );
 
+        upperHookMotor.setPosition(upperHookPositions.get(Position.Stow)); // SO MUST ALWAYS START MATCHES WITH UPPER HOOKS IN STOW
         // if (!request(Request.Stow).isOK()) throw new IllegalStateException("Couldn't stow climber; it began in state " + request);
+        setLowerHooks(Position.Stow);
     }
 
     /** used for testing only */
@@ -423,9 +425,9 @@ public final class Climber extends SubsystemBase {
     private boolean forcingElevatorDown = false;
     private boolean forcingHooksUp = false;
     public void forceStow() {
-        forcingElevatorDown = true;
+        // forcingElevatorDown = true; FIXME: don't need to force down elevator if usign canRange right?
         forcingHooksUp = true;
-        elevatorMotor.setControl(new DutyCycleOut(-0.05));
+        // elevatorMotor.setControl(new DutyCycleOut(-0.05));
         upperHookMotor.setControl(new DutyCycleOut(0.05));
         setLowerHooks(Position.Stow);
     }
@@ -472,15 +474,15 @@ public final class Climber extends SubsystemBase {
         ) {
             System.out.println("Elevator CANrange failure: dist " + elevatorCurrent + ", stdDev " + elevatorStdDev + " - disabling elevator");
             elevatorMotor.setControl(new DutyCycleOut(0));
-        } else if (forcingElevatorDown) {
-            if (isElevatorWithinTolerance(elevatorCANrangeZero)) {
-                System.out.println("Elevator bottom limit hit (CANrange at zero)");
-                forcingElevatorDown = false;
-                elevatorTarget = elevatorCANrangeZero;
-                elevatorMotor.setControl(new DutyCycleOut(0));
-            } else {
-                elevatorMotor.setControl(new DutyCycleOut(-0.05));
-            }
+        // } else if (forcingElevatorDown) {
+        //     if (isElevatorWithinTolerance(elevatorCANrangeZero)) {
+        //         System.out.println("Elevator bottom limit hit (CANrange at zero)");
+        //         forcingElevatorDown = false;
+        //         elevatorTarget = elevatorCANrangeZero;
+        //         elevatorMotor.setControl(new DutyCycleOut(0));
+        //     } else {
+        //         elevatorMotor.setControl(new DutyCycleOut(-0.05));
+        //     }
         } else if (!Double.isNaN(elevatorTarget)) {
             if (isElevatorWithinTolerance(elevatorTarget)) {
                 elevatorMotor.setControl(new DutyCycleOut(0));
@@ -497,12 +499,12 @@ public final class Climber extends SubsystemBase {
         }
         hookSpeed = upperHookMotor.getVelocity().getValueAsDouble();
         if (forcingHooksUp && (upperHooksTorque > hookForceTorque) && (hookSpeed < hookForceVelocityLimit)) {
-            System.out.println("Upper hooks stow limit hit, marking max position");
+            System.out.println("------------\n\n\nUpper hooks stow limit hit, marking max position\n\n\n--------------");
             upperHookMotor.setPosition(hookLimitRotations);
             forcingHooksUp = false;
             setUpperHooks(Position.Stow);
         } else if (forcingHooksUp) {
-            System.out.println("Still forcing hooks up");
+            System.out.println("-------------\n\n\nStill forcing hooks up\n\n\n-------------");
         }
     }
 

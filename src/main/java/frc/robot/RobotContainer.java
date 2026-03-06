@@ -110,9 +110,9 @@ public final class RobotContainer {
         climber = Climber.getInstance();
         SmartDashboard.putData(climber);
 
-        // Start button re-zeros
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.START))
-            .onTrue(new InstantCommand(() -> climber.forceStow()));
+        // // Start button re-zeros
+        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.START))
+        //     .onTrue(new InstantCommand(() -> climber.forceStow()));
         // Operator Xbox A button: lower hooks to Clinch CANCoder position
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.A))
             .onTrue(new InstantCommand(() -> climber.setLowerHooks(Climber.Position.Clinch), climber));
