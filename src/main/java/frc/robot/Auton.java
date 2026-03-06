@@ -21,17 +21,19 @@ import frc.robot.subsystems.Trimmer;
 
 public final class Auton extends SubsystemBase {
     private static Auton instance = null;
-    private static final Drivetrain drive = Drivetrain.getInstance();
+    private static final Drivetrain drivetrain = Drivetrain.getInstance();
     private static final Climber climber = Climber.getInstance();
     private static final Intake intake = Intake.getInstance();
     private static final Launcher launcher = Launcher.getInstance();
     private static final Map<String, Command> commands = Map.ofEntries(
-        entry("00 - None", debug(() -> "Autonomous started with no command chosen")),
-        entry("01 - Drive 1m forward", Commands.sequence(
-            drive.runOnce(() -> drive.seedFieldCentric(Rotation2d.kZero)),
-            drive.applyRequest(() -> SwerveConstants.drive.withVelocityX(0.5).withVelocityY(0).withRotationalRate(0)).withTimeout(2.0),
-            drive.applyRequest(() -> SwerveConstants.idle)
-        ))
+        entry("00 - None", debug(() -> "Autonomous started with no command chosen"))
+       /*  entry("01 - Drive 1m forward", Commands.sequence(
+            This bugs out the drive. I need to talk with whoever did the drivetrain about what to do here.
+            drivetrain.runOnce(() -> drivetrain.seedFieldCentric(Rotation2d.kZero)),
+            drivetrain.applyRequest(() -> SwerveConstants.drive.withVelocityX(0.5).withVelocityY(0).withRotationalRate(0)).withTimeout(2.0),
+            drivetrain.applyRequest(() -> SwerveConstants.idle)
+        ))*/
+        //entry(null, null)
     );
 
     
