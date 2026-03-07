@@ -53,9 +53,9 @@ public final class Climber extends SubsystemBase {
         Inches.of(0.375).in(Millimeters));
 
     /** CANrange distance (m) for elevator zero/bottom. Within 2% = at position. */
-    private static final double elevatorCANrangeZero = 0.03;
+    private static final double elevatorCANrangeZero = 0.015;
     /** CANrange distance (m) for elevator top. Within 2% = at position. */
-    private static final double elevatorCANrangeTop = 0.245;
+    private static final double elevatorCANrangeTop = 0.252;
     // Max range before we assume the canrange sees no reflector so we shouldn't trust it
     private static final double elevatorCANrangeMax = 0.35;
     // Seeing nothing at all looks like a small distance and large StdDev

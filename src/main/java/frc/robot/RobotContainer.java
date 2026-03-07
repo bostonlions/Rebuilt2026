@@ -102,10 +102,12 @@ public final class RobotContainer {
         launcher = Launcher.getInstance();
         SmartDashboard.putData(launcher);
         // Simple shooting mode: X toggles everything on/off.
-        // Launcher is now closed-loop velocity (RPM target) instead of duty cycle.
         // RPM target is adjustable at runtime via Trimmer ("Simple Launch RPM +- 100").
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
             .onTrue(new InstantCommand(() -> launcher.simpleToggle()));
+        // Hurling mode: Right Bumper toggles everything on/off.
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
+            .onTrue(new InstantCommand(() -> launcher.simpleToggle(3000, 25)));
 
         climber = Climber.getInstance();
         SmartDashboard.putData(climber);

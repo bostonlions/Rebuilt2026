@@ -26,7 +26,31 @@ public final class Auton extends SubsystemBase {
     private static final Intake intake = Intake.getInstance();
     private static final Launcher launcher = Launcher.getInstance();
     private static final Map<String, Command> commands = Map.ofEntries(
-        entry("00 - None", debug(() -> "Autonomous started with no command chosen"))
+        entry("00 - None", debug(() -> "Autonomous started with no command chosen")),
+        entry("01 - Shoot from corner of hub", Commands.sequence(
+            // Shoot for 10 sec, low speed and high angle, then turn off
+            new InstantCommand(() -> launcher.simpleToggle(1475, 15, -45)),
+            sleep(10),
+            new InstantCommand(() -> launcher.simpleToggle())
+        )),
+        entry("02 - Shoot from far left", Commands.sequence(
+            // Shoot for 10 sec, low speed and high angle, then turn off
+            new InstantCommand(() -> launcher.simpleToggle(1800, 25, -80)),
+            sleep(10),
+            new InstantCommand(() -> launcher.simpleToggle())
+        )),
+        entry("03 - Shoot from far right", Commands.sequence(
+            // Shoot for 10 sec, low speed and high angle, then turn off
+            new InstantCommand(() -> launcher.simpleToggle(1800, 25, 80)),
+            sleep(10),
+            new InstantCommand(() -> launcher.simpleToggle())
+        )),
+        entry("04 - Shoot straight default", Commands.sequence(
+            // Shoot for 10 sec, default speed and angle, then turn off
+            new InstantCommand(() -> launcher.simpleToggle()),
+            sleep(10),
+            new InstantCommand(() -> launcher.simpleToggle())
+        ))
        /*  entry("01 - Drive 1m forward", Commands.sequence(
             This bugs out the drive. I need to talk with whoever did the drivetrain about what to do here.
             drivetrain.runOnce(() -> drivetrain.seedFieldCentric(Rotation2d.kZero)),
