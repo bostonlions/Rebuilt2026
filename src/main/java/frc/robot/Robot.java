@@ -168,14 +168,6 @@ public final class Robot extends TimedRobot {
     @Override
     public void testExit() {}
 
-    /**
-     * Central CAN ID and port configuration.
-     * <ul>
-     *   <li><b>CANBUS_DRIVE ("Big Justice")</b>: Pigeon2, swerve drive + rotation + CANcoders (FL, FR, BL, BR)</li>
-     *   <li><b>CANBUS_OPS ("Baby Gronk")</b>: Climber (hooks, elevator), CANrange, launcher, pitch/yaw, intake, feeders</li>
-     * </ul>
-     * Set any value marked FIXME to your actual device ID. Avoid duplicate IDs on the same bus.
-     */
     public static final class Ports {
         public static final String CANBUS_DRIVE = "Baby Gronk";
         public static final String CANBUS_OPS = "Big Justice";

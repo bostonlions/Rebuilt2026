@@ -74,7 +74,7 @@ public final class Launcher extends SubsystemBase {
     // Separate test speeds: spinner 25%, roller 75%, launcher 10%
     private final DutyCycleOut feederSpinnerTestRequest = new DutyCycleOut(0.30);
     /** Slow feeder spinner when intake is running (helps move note toward launcher). */
-    private final DutyCycleOut feederSpinnerWithIntakeRequest = new DutyCycleOut(0.5);
+    private final DutyCycleOut feederSpinnerWithIntakeRequest = new DutyCycleOut(0.25);
     private final DutyCycleOut feederRollerTestRequest  = new DutyCycleOut(0.40);
     private final DutyCycleOut launcherTestRequest      = new DutyCycleOut(0.60);
 

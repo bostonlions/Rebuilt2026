@@ -39,7 +39,7 @@ public final class Intake extends SubsystemBase {
     private final SparkFlex spinMotor = new SparkFlex(Ports.INTAKE_SPIN, MotorType.kBrushless);
     private final double inPosition = 0.1;
     private final double outPosition = 0.9355;
-    private final double intakeSpeed = 0.4;
+    private final double intakeSpeed = 0.5;
 
     public static Intake getInstance() {
         if (instance == null) instance = new Intake();
@@ -71,8 +71,8 @@ public final class Intake extends SubsystemBase {
                 .withKA(0.01)
                 .withKS(0.05))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(4)
-                .withMotionMagicAcceleration(4))
+                .withMotionMagicCruiseVelocity(6)
+                .withMotionMagicAcceleration(10))
             .withMotorOutput(new MotorOutputConfigs()
                 .withNeutralMode(NeutralModeValue.Brake)
                 .withInverted(InvertedValue.Clockwise_Positive))

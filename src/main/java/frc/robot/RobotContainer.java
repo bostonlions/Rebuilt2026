@@ -5,19 +5,17 @@
 package frc.robot;
 
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.XboxController;
-
-import static edu.wpi.first.units.Units.MetersPerSecond;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 
 import frc.Telemetry;
 import frc.robot.Robot.Ports;
@@ -29,9 +27,9 @@ import frc.robot.subsystems.Drive.SwerveConstants;
 import frc.robot.subsystems.Trimmer;
 
 public final class RobotContainer {
-    private final Telemetry logger = new Telemetry(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond));
+    private final Telemetry logger = new Telemetry(SwerveConstants.kSpeedAt12Volts.in(edu.wpi.first.units.Units.MetersPerSecond));
     public static final ControlBoard controller = ControlBoard.getInstance();
-    public final Drivetrain drivetrain;
+    public final Drivetrain drivetrain = Drivetrain.getInstance();
     public final Climber climber;
     private final Intake intake;
     private final Launcher launcher;
@@ -42,16 +40,16 @@ public final class RobotContainer {
     // private boolean feederRollerTestEnabled = false;
 
     private void zeroGyro() {
-        DriverStation.getAlliance().ifPresentOrElse(color -> Robot.pigeon.setYaw(color == Alliance.Blue ? 0 : 180), () -> {
-            throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
-        });
+        // DriverStation.getAlliance().ifPresentOrElse(color -> Robot.pigeon.setYaw(color == Alliance.Blue ? 0 : 180), () -> {
+        //     throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
+        // });
+        // drivetrain.getPigeon2().setYaw(0);
+        drivetrain.resetRotation(new Rotation2d(DriverStation.getAlliance().get() == Alliance.Blue ? Math.PI : 0));
     }
 
     public RobotContainer() {
         Robot.pigeon.getConfigurator().apply(new com.ctre.phoenix6.configs.Pigeon2Configuration());
         zeroGyro();
-
-        drivetrain = Drivetrain.getInstance();
         drivetrain.setDefaultCommand( // X is defined as forward according to WPILib convention, and Y is defined as to the left
             drivetrain.applyRequest(() -> // origin is right corner of blue alliance driver station
                 SwerveConstants.drive.withVelocityX(controller.getSwerveTranslation().getX())
@@ -64,7 +62,7 @@ public final class RobotContainer {
             drivetrain.applyRequest(() -> SwerveConstants.idle).ignoringDisable(true)
         );
 
-        new Trigger(() -> controller.driver.getRawButton(1))
+        new Trigger(() -> controller.driver.getRawButton(2))
             .onTrue(new InstantCommand(() -> zeroGyro()).ignoringDisable(true));
 
         drivetrain.registerTelemetry(logger::telemeterize);
@@ -107,7 +105,7 @@ public final class RobotContainer {
             .onTrue(new InstantCommand(() -> launcher.simpleToggle()));
         // Hurling mode: Right Bumper toggles everything on/off.
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
-            .onTrue(new InstantCommand(() -> launcher.simpleToggle(3000, 25)));
+            .onTrue(new InstantCommand(() -> launcher.simpleToggle(3700, 31))); // Hurl shot
 
         climber = Climber.getInstance();
         SmartDashboard.putData(climber);
@@ -227,7 +225,8 @@ public final class RobotContainer {
                 double scaled_x = MathUtil.applyDeadband(forwardAxis, Math.abs(deadband_vector.getX()));
                 double scaled_y = MathUtil.applyDeadband(strafeAxis, Math.abs(deadband_vector.getY()));
                 double driveScale = driver.getRawAxis(kSlowDriveAxis) > kSlowDriveThreshold ? kSlowDriveScale : 1.0;
-                return new Translation2d(scaled_x, scaled_y).times(SwerveConstants.kSpeedAt12Volts.in(MetersPerSecond) * driveScale);
+                return new Translation2d(scaled_x, scaled_y).times(SwerveConstants.kSpeedAt12Volts
+                    .in(edu.wpi.first.units.Units.MetersPerSecond) * driveScale);
             }
         }
 
@@ -324,7 +323,7 @@ public final class RobotContainer {
             private static final double kInputClipping = 1; // Trimming joystick input by a percent; set to 1 for 100% of
             public static final double kTriggerThreshold = 0.2; //                                         joystick range
 
-            private static final double stickDeadband = 0.05;
+            private static final double stickDeadband = 0.02;
             private static final int leftXAxis = 0;
             // public static final int leftYAxis = 1;
             private static final int rightXAxis = 3;
