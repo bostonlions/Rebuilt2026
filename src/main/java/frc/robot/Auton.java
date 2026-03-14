@@ -22,38 +22,38 @@ public final class Auton extends SubsystemBase {
     private static final Launcher launcher = Launcher.getInstance();
     private static final Intake intake = Intake.getInstance();
     private static final Map<String, Command> commands = Map.ofEntries(
-        entry("00 - None", new PrintCommand("Autonomous started with no command chosen")),
-        entry("01 - Shoot from left corner of hub", Commands.sequence(
+        entry("0: None", new PrintCommand("Autonomous started with no command chosen")),
+        entry("1: Shoot from left corner of hub", Commands.sequence(
             new InstantCommand(() -> launcher.simpleToggle(1475, 15, -45)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
         )),
-        entry("02 - Shoot from right corner of hub", Commands.sequence(
+        entry("2: Shoot from right corner of hub", Commands.sequence(
             new InstantCommand(() -> launcher.simpleToggle(1475, 15, 45)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
-        )),
-        // entry("03 - Shoot from far left", Commands.sequence(
+        ))
+        // entry("3: Shoot from far left", Commands.sequence(
         //     // Shoot for 10 sec, low speed and high angle, then turn off
         //     new InstantCommand(() -> launcher.simpleToggle(1800, 25, -80)),
         //     sleep(10),
         //     new InstantCommand(() -> launcher.simpleToggle())
         // )),
-        // entry("04 - Shoot from far right", Commands.sequence(
+        // entry("4: Shoot from far right", Commands.sequence(
         //     // Shoot for 10 sec, low speed and high angle, then turn off
         //     new InstantCommand(() -> launcher.simpleToggle(1800, 25, 80)),
         //     sleep(10),
         //     new InstantCommand(() -> launcher.simpleToggle())
         // )),
-        entry("03 - Shoot straight default", Commands.sequence(
-            // Shoot for 10 sec, default speed and angle, then turn off
-            new InstantCommand(() -> launcher.simpleToggle()),
-            sleep(10),
-            new InstantCommand(() -> launcher.simpleToggle())
-        ))
-        // entry("06 - Shoot and climb: left hub corner", Commands.sequence(
+        // entry("3: Shoot straight default", Commands.sequence(
+        //     // Shoot for 10 sec, default speed and angle, then turn off
+        //     new InstantCommand(() -> launcher.simpleToggle()),
+        //     sleep(10),
+        //     new InstantCommand(() -> launcher.simpleToggle())
+        // ))
+        // entry("4: Shoot and climb: left hub corner", Commands.sequence(
         //     new InstantCommand(() -> launcher.simpleToggle(1475, 15, -45)),
         //     sleep(8),
         //     new InstantCommand(() -> launcher.simpleToggle())
@@ -61,19 +61,17 @@ public final class Auton extends SubsystemBase {
         //     // then slowly drive forward too far (2 feet?) so we know we hit the tower
         //     // then climb
         // )),
-        // entry("07 - Shoot and climb: right hub corner", Commands.sequence(
+        // entry("5: Shoot and climb: right hub corner", Commands.sequence(
         //     new InstantCommand(() -> launcher.simpleToggle(1475, 15, 45)),
         //     sleep(8),
         //     new InstantCommand(() -> launcher.simpleToggle())
         // ))
     );
-
     
     public static Auton getInstance() {
         if (instance == null) instance = new Auton();
         return instance;
     }
-
    
     private volatile int commandIdx = 0;
 

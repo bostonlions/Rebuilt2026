@@ -15,8 +15,10 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.CANBus;
@@ -25,6 +27,7 @@ public final class Robot extends TimedRobot {
     public static final CANBus kCANBusGronk = new CANBus(Ports.CANBUS_DRIVE);
     public static final CANBus kCANBusJustice = new CANBus(Ports.CANBUS_OPS);
     public static final Pigeon2 pigeon = new Pigeon2(Ports.PIGEON, kCANBusGronk);
+    private static final Timer clock = new Timer();
     private final RobotContainer m_robotContainer = new RobotContainer();
     private Command m_autonomousCommand;
     private boolean m_wasEnabledInTeleop = false;
@@ -135,6 +138,9 @@ public final class Robot extends TimedRobot {
 
         if (m_autonomousCommand != null) CommandScheduler.getInstance().cancel(m_autonomousCommand);
         m_robotContainer.climber.resetZerosAndTargetState();
+
+        if (clock.isRunning()) clock.reset(); else clock.start();
+        CommandScheduler.getInstance().schedule(new WaitCommand(10).andThen(() -> clock.reset()));
     }
 
     @Override
@@ -144,14 +150,19 @@ public final class Robot extends TimedRobot {
                 m_robotContainer.climber.resetZerosAndTargetState();
                 m_wasEnabledInTeleop = true;
             }
-        } else {
-            m_wasEnabledInTeleop = false;
-        }
+            if (clock.hasElapsed(25)) clock.reset();
+        } else m_wasEnabledInTeleop = false;
+
         m_robotContainer.climber.move(
             RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y),
             RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.X),
             RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.RIGHT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y)
         );
+    }
+
+    /** Gets the number of seconds left of hopper being for current color */
+    public static double getCountDown() {
+        return ((double) Math.round((25 - clock.get()) * 10)) / 10;
     }
 
     @Override

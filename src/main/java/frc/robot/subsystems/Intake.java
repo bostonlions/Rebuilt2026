@@ -39,7 +39,7 @@ public final class Intake extends SubsystemBase {
     private final SparkFlex spinMotor = new SparkFlex(Ports.INTAKE_SPIN, MotorType.kBrushless);
     private final double inPosition = 0.1;
     private final double outPosition = 0.9355;
-    private final double intakeSpeed = 0.5;
+    private final double intakeSpeed = 0.48;
 
     public static Intake getInstance() {
         if (instance == null) instance = new Intake();
@@ -48,7 +48,7 @@ public final class Intake extends SubsystemBase {
 
     private Intake() {
         extendCANcoder.getConfigurator().apply(new CANcoderConfiguration().withMagnetSensor(new MagnetSensorConfigs()
-            .withMagnetOffset(0.12)
+            .withMagnetOffset(0.118) // add 0.1 to measured value, and then add 0.1 to in and out positions; offset all values by 0.1
             .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
             .withAbsoluteSensorDiscontinuityPoint(1)));
         final SparkFlexConfig config = new SparkFlexConfig();

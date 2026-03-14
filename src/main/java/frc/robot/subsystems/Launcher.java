@@ -34,7 +34,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import edu.wpi.first.math.MathUtil;
-
+import frc.robot.Robot;
 import frc.robot.Robot.Ports;
 
 import static frc.robot.Robot.kCANBusJustice;
@@ -57,8 +57,8 @@ public final class Launcher extends SubsystemBase {
     private final double pitchLimitRotations = -0.25;
 
     private final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-100., 260.); // in degrees
-    private final double c11Offset = 0.102; // 11-tooth cancoder value at 0 degrees
-    private final double c12Offset = 0.929; // 12-tooth cancoder value at 0 degrees
+    private final double c11Offset = 0.919; // 11-tooth cancoder value at 0 degrees
+    private final double c12Offset = 0.944; // 12-tooth cancoder value at 0 degrees
     private final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
 
     private final Translation2d turretPosRobotRel = new Translation2d(-0.033147, 0.1394968); // coordinates are in meters following wpiblue coordinate convention
@@ -74,7 +74,7 @@ public final class Launcher extends SubsystemBase {
     // Separate test speeds: spinner 25%, roller 75%, launcher 10%
     private final DutyCycleOut feederSpinnerTestRequest = new DutyCycleOut(0.30);
     /** Slow feeder spinner when intake is running (helps move note toward launcher). */
-    private final DutyCycleOut feederSpinnerWithIntakeRequest = new DutyCycleOut(0.25);
+    private final DutyCycleOut feederSpinnerWithIntakeRequest = new DutyCycleOut(0.1);
     private final DutyCycleOut feederRollerTestRequest  = new DutyCycleOut(0.40);
     private final DutyCycleOut launcherTestRequest      = new DutyCycleOut(0.60);
 
@@ -119,6 +119,7 @@ public final class Launcher extends SubsystemBase {
         feeder_spinner.getConfigurator().apply(feederMotorConfig);
         feeder_roller.getConfigurator().apply(feederMotorConfig);
 
+        // Don't configure can coder offsets here; enter offsets into c11 and c12 offset constants above
         yaw12cancoder.getConfigurator().apply(new MagnetSensorConfigs().withMagnetOffset(0).withAbsoluteSensorDiscontinuityPoint(1));
         yaw11cancoder.getConfigurator().apply(new MagnetSensorConfigs().withMagnetOffset(0).withAbsoluteSensorDiscontinuityPoint(1));
 
@@ -333,7 +334,7 @@ public final class Launcher extends SubsystemBase {
 
     public void simpleToggle(double launchSpeedRpm, double pitchDegrees, double yawDegrees) {
         toggledOn = !toggledOn;
-        System.out.println("launcher simpleToggle, toggledOn: " + toggledOn + ", target RPM=" + launchSpeedRpm);
+        // System.out.println("launcher simpleToggle, toggledOn: " + toggledOn + ", target RPM=" + launchSpeedRpm);
         if (toggledOn) {
             // Closed-loop velocity control: interpret launchSpeedRpm as motor RPM
             double targetRps = launchSpeedRpm / 60.0; // rotations per second
@@ -353,16 +354,18 @@ public final class Launcher extends SubsystemBase {
                     return atSpeed;
                 }).withTimeout(3.0)
                 .andThen(new WaitCommand(0.5))
-                .andThen(new InstantCommand(() -> setFeeder(true)))
+                .andThen(new InstantCommand(() -> {if (toggledOn) setFeeder(true);}, this))
             );
         } else {
             setFeeder(false);
             CommandScheduler.getInstance().schedule(
                 new WaitCommand(1.5).andThen(new InstantCommand(() -> {
-                    launchMotor.setControl(brake);
-                    forcePitchDown();
-                    setYaw(0);
-                }))
+                    if (!toggledOn) {
+                        launchMotor.setControl(brake);
+                        forcePitchDown();
+                        setYaw(0);
+                    }
+                }, this))
             );
         }
     }
@@ -422,7 +425,7 @@ public final class Launcher extends SubsystemBase {
         builder.setActuator(true);
 
         builder.addStringProperty("Mode", () -> mode.toString(), null);
-        builder.addBooleanProperty("blueAlliance", () -> blueAlliance, null);
+        builder.addDoubleProperty("Seconds left until hopper color switches:", () -> Robot.getCountDown(), null);
         builder.addBooleanProperty("hurling", () -> hurling, null);
         builder.addBooleanProperty("shooterSpeedReady", () -> shooterSpeedReady, null);
         builder.addDoubleProperty("shootTargetX", () -> shootTarget.getX(), null);

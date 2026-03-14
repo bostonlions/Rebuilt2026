@@ -97,7 +97,7 @@ public final class Climber extends SubsystemBase {
         Position.Stow, Rotations.of(0),
         Position.Bottom, Rotations.of(-260),
         Position.L1, Rotations.of(-100),
-        Position.Top, Rotations.of(-64)
+        Position.Top, Rotations.of(-60)
     );
 
     private final MotionMagicVoltage motion = new MotionMagicVoltage(0);
