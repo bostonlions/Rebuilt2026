@@ -70,7 +70,7 @@ public final class Launcher extends SubsystemBase {
     private final double launchToTurretSpeedScale = Double.NaN; // FIXME -- launch motor revs * resulting fly wheel revs  * flywheel circumference / 2  ???
 
     private final StaticBrake brake = new StaticBrake();
-    private final DutyCycleOut feederMotionRequest = new DutyCycleOut(1);
+    private final DutyCycleOut feederMotionRequest = new DutyCycleOut(0.1);
     // Separate test speeds: spinner 25%, roller 75%, launcher 10%
     private final DutyCycleOut feederSpinnerTestRequest = new DutyCycleOut(0.30);
     /** Slow feeder spinner when intake is running (helps move note toward launcher). */
@@ -332,6 +332,9 @@ public final class Launcher extends SubsystemBase {
         simpleToggle(launchSpeedRpm, pitchDegrees, 0.0);
     }
 
+    private boolean dynamicYaw;
+
+    /** A yaw of NaN indicates that actually we will use dynamic yaw for hurling */
     public void simpleToggle(double launchSpeedRpm, double pitchDegrees, double yawDegrees) {
         toggledOn = !toggledOn;
         // System.out.println("launcher simpleToggle, toggledOn: " + toggledOn + ", target RPM=" + launchSpeedRpm);
@@ -339,7 +342,8 @@ public final class Launcher extends SubsystemBase {
             // Closed-loop velocity control: interpret launchSpeedRpm as motor RPM
             double targetRps = launchSpeedRpm / 60.0; // rotations per second
             launchMotor.setControl(new MotionMagicVelocityDutyCycle(targetRps));
-            setYaw(yawDegrees);
+            dynamicYaw = Double.isNaN(yawDegrees);
+            if (!dynamicYaw) setYaw(yawDegrees);
             setPitch(pitchDegrees);
             CommandScheduler.getInstance().schedule(
                 // Wait until either launcher is at speed (within tolerance) OR 3 seconds have passed,
@@ -386,7 +390,7 @@ public final class Launcher extends SubsystemBase {
     }
 
     private boolean forcingDown = false;
-    private void forcePitchDown() {
+    public void forcePitchDown() {
         forcingDown = true;
         pitchMotor.setControl(new DutyCycleOut(-0.1));
     }
@@ -417,6 +421,9 @@ public final class Launcher extends SubsystemBase {
             forcingDown = false;
             setPitch(pitchBounds.getFirst());
         }
+
+        if (toggledOn && dynamicYaw)
+            setYaw(-Drive.Drivetrain.getInstance().getState().Pose.getRotation().getDegrees() + (blueAlliance ? 0 : 180));
     }
 
     @Override

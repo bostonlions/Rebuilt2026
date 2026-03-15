@@ -40,10 +40,6 @@ public final class RobotContainer {
     // private boolean feederRollerTestEnabled = false;
 
     private void zeroGyro() {
-        // DriverStation.getAlliance().ifPresentOrElse(color -> Robot.pigeon.setYaw(color == Alliance.Blue ? 0 : 180), () -> {
-        //     throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
-        // });
-        // drivetrain.getPigeon2().setYaw(0);
         drivetrain.resetRotation(new Rotation2d(DriverStation.getAlliance().get() == Alliance.Blue ? Math.PI : 0));
     }
 
@@ -105,7 +101,7 @@ public final class RobotContainer {
             .onTrue(new InstantCommand(() -> launcher.simpleToggle()));
         // Hurling mode: Right Bumper toggles everything on/off.
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
-            .onTrue(new InstantCommand(() -> launcher.simpleToggle(3700, 31))); // Hurl shot
+            .onTrue(new InstantCommand(() -> launcher.simpleToggle(370/*0*/, 31, Double.NaN))); // Hurl shot
 
         climber = Climber.getInstance();
         SmartDashboard.putData(climber);

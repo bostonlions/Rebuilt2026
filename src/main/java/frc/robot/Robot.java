@@ -4,15 +4,13 @@
 
 package frc.robot;
 
-// import frc.LimelightHelpers;
+import frc.LimelightHelpers;
+import frc.LimelightHelpers.PoseEstimate;
+import frc.robot.subsystems.Launcher;
 
-// import edu.wpi.first.units.Units;
 import edu.wpi.first.math.MatBuilder;
 import edu.wpi.first.math.Nat;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -20,8 +18,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 
-import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.hardware.Pigeon2;
 
 public final class Robot extends TimedRobot {
     public static final CANBus kCANBusGronk = new CANBus(Ports.CANBUS_DRIVE);
@@ -31,88 +29,63 @@ public final class Robot extends TimedRobot {
     private final RobotContainer m_robotContainer = new RobotContainer();
     private Command m_autonomousCommand;
     private boolean m_wasEnabledInTeleop = false;
+    private int IMUmode = 1;
+    private final boolean useVision = false;
 
     @Override
     public void robotPeriodic() {
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-a", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-a", 4);
-
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-b", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-b", 4);
-
         CommandScheduler.getInstance().run();
 
-        NetworkTable tableA = NetworkTableInstance.getDefault().getTable("limelight-a");
-        double[] poseA = tableA.getEntry("botpose_wpiblue").getDoubleArray(new double[6]);
-        double[] bptsA = tableA.getEntry("botpose_targetspace").getDoubleArray(new double[6]);
-        double errorA = (Math.pow(bptsA[0], 2) + Math.pow(bptsA[1], 2) + Math.pow(bptsA[2], 2)) / 50;
-        if (poseA[0] != 0 && errorA != 0) { // essentially this statement is true iff we have a measurement
-            m_robotContainer.drivetrain.addVisionMeasurement(
-                new Pose2d(poseA[0], poseA[1], new Rotation2d(poseA[5] * Math.PI / 180)),
-                tableA.getEntry("ts_nt").getDouble(Double.NaN),
-                MatBuilder.fill(Nat.N3(), Nat.N1(), errorA, errorA, 0.01)
-            );
-            System.out.println("Adding vision A: " + poseA[0] + ", " + poseA[1] + ", " + poseA[5] + ", +- " + errorA);
+        if (!useVision) return;
+
+        final double yaw = pigeon.getYaw().getValue().in(Units.Degrees);
+
+        LimelightHelpers.SetRobotOrientation("limelight-a", yaw, 0, 0, 0, 0, 0);
+        LimelightHelpers.SetIMUMode("limelight-a", IMUmode);
+
+        LimelightHelpers.SetRobotOrientation("limelight-b", yaw, 0, 0, 0, 0, 0);
+        LimelightHelpers.SetIMUMode("limelight-b", IMUmode);
+
+        PoseEstimate bpa = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-a");
+        boolean aValid = bpa != null && bpa.rawFiducials != null && bpa.rawFiducials.length != 0;
+        PoseEstimate bpb = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-b");
+        boolean bValid = bpb != null && bpb.rawFiducials != null && bpb.rawFiducials.length != 0;
+        PoseEstimate bp; // the pose estimate to actually use; determined later
+
+        if (aValid || bValid) {
+            if (!aValid) bp = bpb;
+            else if (!bValid) bp = bpa;
+            else if (bpa.rawFiducials[0].distToCamera > bpa.rawFiducials[0].distToCamera) bp = bpb;
+            else bp = bpa;
+
+            System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
+
+            double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
+            m_robotContainer.drivetrain.addVisionMeasurement(bp.pose, bp.timestampSeconds,
+                MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 0.01));
         }
 
-        NetworkTable tableB = NetworkTableInstance.getDefault().getTable("limelight-b");
-        double[] poseB = tableB.getEntry("botpose_wpiblue").getDoubleArray(new double[6]);
-        double[] bptsB = tableB.getEntry("botpose_targetspace").getDoubleArray(new double[6]);
-        double errorB = (Math.pow(bptsB[0], 2) + Math.pow(bptsB[1], 2) + Math.pow(bptsB[2], 2)) / 50;
-        if (poseB[0] != 0 && errorB != 0) { // essentially this statement is true iff we have a measurement
-            m_robotContainer.drivetrain.addVisionMeasurement(
-                new Pose2d(poseB[0], poseB[1], new Rotation2d(poseB[5] * Math.PI / 180)),
-                tableB.getEntry("ts_nt").getDouble(Double.NaN),
-                MatBuilder.fill(Nat.N3(), Nat.N1(), errorB, errorB, 0.01)
-            );
-            System.out.println("Adding vision B: " + poseB[0] + ", " + poseB[1] + ", " + poseB[5] + ", +- " + errorB);
+        if (aValid && bValid) {
+            System.out.print("dx: " + Math.abs(bpa.pose.getX() - bpb.pose.getX()));
+            System.out.print("; dy: " + Math.abs(bpa.pose.getY() - bpb.pose.getY()));
+            System.out.println("; dt: " + Math.abs(bpa.pose.getRotation().getDegrees() - bpb.pose.getRotation().getDegrees()));
         }
     }
 
     @Override
     public void disabledInit() {
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-a", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-a", 1);
-
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-b", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-b", 1);
+        IMUmode = 1;
     }
 
     @Override
-    public void disabledPeriodic() {
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-a", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-a", 1);
-
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-b", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-b", 1);
-    }
+    public void disabledPeriodic() {}
 
     @Override
     public void disabledExit() {}
 
     @Override
     public void autonomousInit() {
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-a", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-a", 4);
-
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-b", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-b", 4);
+        IMUmode = 4;
 
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
         if (m_autonomousCommand != null) CommandScheduler.getInstance().schedule(m_autonomousCommand);
@@ -126,15 +99,9 @@ public final class Robot extends TimedRobot {
 
     @Override
     public void teleopInit() {
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-a", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-a", 4);
-
-        // LimelightHelpers.SetRobotOrientation(
-        //     "limelight-b", pigeon.getYaw().getValue().in(Units.Degrees), 0, 0, 0, 0, 0
-        // );
-        // LimelightHelpers.SetIMUMode("limelight-b", 4);
+        Launcher.getInstance().forcePitchDown();
+        
+        IMUmode = 4;
 
         if (m_autonomousCommand != null) CommandScheduler.getInstance().cancel(m_autonomousCommand);
         m_robotContainer.climber.resetZerosAndTargetState();

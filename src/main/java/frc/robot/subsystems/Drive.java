@@ -49,6 +49,7 @@ import frc.robot.Robot;
 
 public final class Drive implements Subsystem {
     public static final class Drivetrain extends SwerveConstants.TunerSwerveDrivetrain implements Subsystem {
+        private static Drivetrain instance = null;
         private static final double kSimLoopPeriod = 0.004; // 4 ms
         private Notifier m_simNotifier = null;
         private double m_lastSimTime;
@@ -66,10 +67,11 @@ public final class Drive implements Subsystem {
         // private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
 
         public static Drivetrain getInstance() {
-            return new Drivetrain(
+            if (instance == null) instance = new Drivetrain(
                 SwerveConstants.DrivetrainConstants, SwerveConstants.FrontLeft,
                 SwerveConstants.FrontRight, SwerveConstants.BackLeft, SwerveConstants.BackRight
             );
+            return instance;
         }
         //THIS IS ALL FOR PATHPLANNER I DIDN"T FIGURE IT OUT SO I COMMENTED IT. 
         //MAIN PROBLEM: Pathplanner wants a driveRobotRelative command and I don't think we have that.
