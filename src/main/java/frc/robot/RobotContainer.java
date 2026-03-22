@@ -21,9 +21,9 @@ import frc.Telemetry;
 import frc.robot.Robot.Ports;
 import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Launcher;
 import frc.robot.subsystems.Drive.Drivetrain;
 import frc.robot.subsystems.Drive.SwerveConstants;
+import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.Trimmer;
 
 public final class RobotContainer {
@@ -74,27 +74,14 @@ public final class RobotContainer {
             .onTrue(new InstantCommand(() -> intake.toggleSpin(), intake));
         
 
-        // // Operator Xbox controller A button tests FEEDER_SPINNER at 25% duty (hold to run)
-        // new Trigger(() -> controller.getFeederSpinnerTestButton())
-        //     .onTrue(new InstantCommand(() -> launcher.setFeederTest(true), launcher))
-        //     .onFalse(new InstantCommand(() -> launcher.setFeederTest(false), launcher));
-
-        // // Operator Xbox controller Y button toggles LAUNCHER at test duty
-        // new Trigger(() -> controller.getLauncherToggleButton())
-        //     .onTrue(new InstantCommand(() -> {
-        //         launcherTestEnabled = !launcherTestEnabled;
-        //         launcher.setLauncherTest(launcherTestEnabled);
-        //     }, launcher));
-
-        // // Operator Xbox controller X button toggles FEEDER_ROLLER at 75% duty
-        // new Trigger(() -> controller.getFeederRollerToggleButton())
-        //     .onTrue(new InstantCommand(() -> {
-        //         feederRollerTestEnabled = !feederRollerTestEnabled;
-        //         launcher.setFeederRollerTest(feederRollerTestEnabled);
-        //     }, launcher));
-
         launcher = Launcher.getInstance();
         SmartDashboard.putData(launcher);
+        // --- SHOOTING ---
+        // Controlls:
+        // X: Simple toggle shooter / Shoot
+        // RB: Simple Hurl / Spin Up
+        // To shoot, hold down RB and press X when ready to start shooting
+
         // Simple shooting mode: X toggles everything on/off.
         // RPM target is adjustable at runtime via Trimmer ("Simple Launch RPM +- 100").
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
@@ -102,6 +89,27 @@ public final class RobotContainer {
         // Hurling mode: Right Bumper toggles everything on/off.
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
             .onTrue(new InstantCommand(() -> launcher.simpleToggle(370/*0*/, 31, Double.NaN))); // Hurl shot
+        
+        // UNCOMMENT WHEN READY FOR SHOOTNIG WITH POSE2D
+        // 1. Spin up / Aim (STANDBY)
+        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
+        //     .onTrue(new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY)))
+        //     .onFalse(new InstantCommand(() -> launcher.setMode(Launcher.Mode.OFF)));
+
+        // // 2. Fire (Requires right bumper to be held, or you can make it standalone)
+        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
+        //     .onTrue(new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE)))
+        //     .onFalse(new InstantCommand(() -> {
+        //         // When you let go of the fire button, drop back to STANDBY if the spin-up 
+        //         // button is still held, otherwise turn OFF.
+        //         if (controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB)) {
+        //             launcher.setMode(Launcher.Mode.STANDBY);
+        //         } else {
+        //             launcher.setMode(Launcher.Mode.OFF);
+        //         }
+        //     }));
+
+
 
         climber = Climber.getInstance();
         SmartDashboard.putData(climber);
@@ -221,6 +229,13 @@ public final class RobotContainer {
                 double scaled_x = MathUtil.applyDeadband(forwardAxis, Math.abs(deadband_vector.getX()));
                 double scaled_y = MathUtil.applyDeadband(strafeAxis, Math.abs(deadband_vector.getY()));
                 double driveScale = driver.getRawAxis(kSlowDriveAxis) > kSlowDriveThreshold ? kSlowDriveScale : 1.0;
+
+                // Apply additional slowdown if the launcher is preparing to shoot
+                if (Launcher.getInstance().isAimingOrShooting()) {
+                    // Adjust this 0.3 (30% speed) value to whatever feels best
+                    driveScale *= 0.3; // TODO: CHANGE to whatever speed you want while shooting
+                }
+
                 return new Translation2d(scaled_x, scaled_y).times(SwerveConstants.kSpeedAt12Volts
                     .in(edu.wpi.first.units.Units.MetersPerSecond) * driveScale);
             }

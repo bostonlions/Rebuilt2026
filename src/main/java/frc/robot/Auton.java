@@ -14,8 +14,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 
 import frc.robot.subsystems.Intake;
-import frc.robot.subsystems.Launcher;
 import frc.robot.subsystems.Trimmer;
+import frc.robot.subsystems.launcher.Launcher;
 
 public final class Auton extends SubsystemBase {
     private static Auton instance = null;
