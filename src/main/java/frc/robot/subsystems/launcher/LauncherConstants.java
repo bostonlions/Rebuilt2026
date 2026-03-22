@@ -48,5 +48,8 @@ public class LauncherConstants {
         // --- Geometry Constants ---
         public static final double ballExitHeight = 0.391; // meters = 15.376 in 
         private final Translation2d turretPosRobotRel = new Translation2d(-0.033147, 0.1394968); // coordinates are in meters following wpiblue coordinate convention
+        // public static final double blueTrenchLocation = 4.625594;
+        // public static final double redTrenchLocation = 11.915394; // meters
+        public static final double trenchTolerance = 0.61; // how close the robot has to be to the trench for the hood to go down
 
 }
