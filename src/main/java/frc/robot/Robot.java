@@ -13,6 +13,8 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
@@ -30,12 +32,23 @@ public final class Robot extends TimedRobot {
     private boolean m_wasEnabledInTeleop = false;
     private int IMUmode = 1;
     private final boolean useVision = false;
+    /** When true, runs Limelight MegaTag2 and publishes pose to SmartDashboard for Elastic (Field widget). */
+    private final boolean publishLimelightField = true;
+    private final Field2d m_limelightField = new Field2d();
+
+    /** NetworkTables/SmartDashboard name for {@link #m_limelightField}; bind Elastic Field widget to this sendable. */
+    public static final String LIMELIGHT_FIELD_KEY = "LimelightField";
+
+    @Override
+    public void robotInit() {
+        SmartDashboard.putData(LIMELIGHT_FIELD_KEY, m_limelightField);
+    }
 
     @Override
     public void robotPeriodic() {
         CommandScheduler.getInstance().run();
 
-        if (!useVision) return;
+        if (!publishLimelightField && !useVision) return;
 
         final double yaw = pigeon.getYaw().getValue().in(Units.Degrees);
 
@@ -54,17 +67,23 @@ public final class Robot extends TimedRobot {
         if (aValid || bValid) {
             if (!aValid) bp = bpb;
             else if (!bValid) bp = bpa;
-            else if (bpa.rawFiducials[0].distToCamera > bpa.rawFiducials[0].distToCamera) bp = bpb;
+            else if (bpa.rawFiducials[0].distToCamera > bpb.rawFiducials[0].distToCamera) bp = bpb;
             else bp = bpa;
 
-            System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
+            if (publishLimelightField) {
+                m_limelightField.setRobotPose(bp.pose);
+            }
 
-            double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
-            m_robotContainer.drivetrain.addVisionMeasurement(bp.pose, bp.timestampSeconds,
-                MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 0.01));
+            if (useVision) {
+                System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
+                // Commenting out so vision does not interact with drivetrain pose estimation
+                //double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
+                //m_robotContainer.drivetrain.addVisionMeasurement(bp.pose, bp.timestampSeconds,
+                //     MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 0.01));
+            }
         }
 
-        if (aValid && bValid) {
+        if (useVision && aValid && bValid) {
             System.out.print("dx: " + Math.abs(bpa.pose.getX() - bpb.pose.getX()));
             System.out.print("; dy: " + Math.abs(bpa.pose.getY() - bpb.pose.getY()));
             System.out.println("; dt: " + Math.abs(bpa.pose.getRotation().getDegrees() - bpb.pose.getRotation().getDegrees()));
