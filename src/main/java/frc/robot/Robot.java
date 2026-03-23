@@ -31,7 +31,7 @@ public final class Robot extends TimedRobot {
     private Command m_autonomousCommand;
     private boolean m_wasEnabledInTeleop = false;
     private int IMUmode = 1;
-    private final boolean useVision = true;
+    private final boolean useVision = false;
     /** When true, runs Limelight MegaTag2 and publishes pose to SmartDashboard for Elastic (Field widget). */
     private final boolean publishLimelightField = true;
     private final Field2d m_limelightField = new Field2d();

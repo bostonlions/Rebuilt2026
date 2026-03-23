@@ -35,7 +35,7 @@ public final class RobotContainer {
     private final Intake intake;
     private final Launcher launcher;
     private final Trimmer trimmer = Trimmer.getInstance();
-    private final AutoFactory autoFactory;
+    public static AutoFactory autoFactory;
     
 
     // // Test toggles
@@ -144,7 +144,7 @@ public final class RobotContainer {
             drivetrain::getPose, // A function that returns the current robot pose
             drivetrain::resetPose, // A function that resets the current robot pose to the provided Pose2d
             drivetrain::followTrajectory, // The drive subsystem trajectory follower 
-            true, // If alliance flipping should be enabled 
+            false, // If alliance flipping should be enabled 
             drivetrain // The drive subsystem
         );
 

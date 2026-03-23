@@ -405,9 +405,9 @@ public final class Drive implements Subsystem {
             .withKP(0.1).withKI(0).withKD(0)
             .withKS(0).withKV(0.124);
 
-        private static final PIDController xController = new PIDController(10.0, 0.0, 0.0);
-        private static final PIDController yController = new PIDController(10.0, 0.0, 0.0);
-        private static final PIDController headingController = new PIDController(7.5, 0.0, 0.0);
+        private static final PIDController xController = new PIDController(2.0, 0.0, 0.0);
+        private static final PIDController yController = new PIDController(2.0, 0.0, 0.0);
+        private static final PIDController headingController = new PIDController(2.0, 0.0, 0.0);
 
         // The closed-loop output type to use for the steer motors;
         // This affects the PID/FF gains for the steer motors

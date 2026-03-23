@@ -23,7 +23,7 @@ public final class Auton extends SubsystemBase {
     private static Auton instance = null;
     private static final Launcher launcher = Launcher.getInstance();
     private static final Intake intake = Intake.getInstance();
-    private static AutoFactory autoFactory;
+    private static AutoFactory autoFactory = RobotContainer.autoFactory;
     private static final Map<String, Command> commands = Map.ofEntries(
         entry("0: None", new PrintCommand("Autonomous started with no command chosen")),
         entry("1: Shoot from left corner of hub", Commands.sequence(
@@ -38,7 +38,10 @@ public final class Auton extends SubsystemBase {
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
         )),
-        entry("DriveForwardNow", autoFactory.trajectoryCmd("myAuto"))
+        entry("DriveForwardNow", Commands.sequence(
+            autoFactory.resetOdometry("FirstTest"),
+            autoFactory.trajectoryCmd("FirstTest")
+        ))
         
         // entry("3: Shoot from far left", Commands.sequence(
         //     // Shoot for 10 sec, low speed and high angle, then turn off
@@ -74,7 +77,7 @@ public final class Auton extends SubsystemBase {
     );
     
     public static Auton getInstance() {
-        if (instance == null) instance = new Auton(autoFactory);
+        if (instance == null) instance = new Auton();
         return instance;
     }
    
@@ -83,7 +86,7 @@ public final class Auton extends SubsystemBase {
     private String[] commandNames;
     private String allCommands;
 
-    private Auton(AutoFactory autoFactory) {
+    private Auton() {
         commandNames = commands.keySet().toArray(new String[0]);
         Arrays.sort(commandNames);
         allCommands = String.join("\n", commandNames);
