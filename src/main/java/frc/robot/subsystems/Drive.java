@@ -366,6 +366,7 @@ public final class Drive implements Subsystem {
         public void followTrajectory(SwerveSample sample) {
                 // Get the current pose of the robot
             Pose2d pose = this.getState().Pose;
+            System.out.println("my pose: " + pose.getX() + ", Sample pose: " + sample.x);
 
             // Generate the next speeds for the robot
             ChassisSpeeds speeds = new ChassisSpeeds(
