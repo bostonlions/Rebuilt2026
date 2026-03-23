@@ -3,6 +3,8 @@ package frc.robot;
 import java.util.Arrays;
 import java.util.Map;
 
+import choreo.auto.AutoFactory;
+
 import static java.util.Map.entry;
 
 import edu.wpi.first.util.sendable.SendableBuilder;
@@ -21,6 +23,7 @@ public final class Auton extends SubsystemBase {
     private static Auton instance = null;
     private static final Launcher launcher = Launcher.getInstance();
     private static final Intake intake = Intake.getInstance();
+    private static AutoFactory autoFactory;
     private static final Map<String, Command> commands = Map.ofEntries(
         entry("0: None", new PrintCommand("Autonomous started with no command chosen")),
         entry("1: Shoot from left corner of hub", Commands.sequence(
@@ -34,7 +37,9 @@ public final class Auton extends SubsystemBase {
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
-        ))
+        )),
+        entry("DriveForwardNow", autoFactory.trajectoryCmd("myAuto"))
+        
         // entry("3: Shoot from far left", Commands.sequence(
         //     // Shoot for 10 sec, low speed and high angle, then turn off
         //     new InstantCommand(() -> launcher.simpleToggle(1800, 25, -80)),
@@ -69,7 +74,7 @@ public final class Auton extends SubsystemBase {
     );
     
     public static Auton getInstance() {
-        if (instance == null) instance = new Auton();
+        if (instance == null) instance = new Auton(autoFactory);
         return instance;
     }
    
@@ -78,11 +83,13 @@ public final class Auton extends SubsystemBase {
     private String[] commandNames;
     private String allCommands;
 
-    private Auton() {
+    private Auton(AutoFactory autoFactory) {
         commandNames = commands.keySet().toArray(new String[0]);
         Arrays.sort(commandNames);
         allCommands = String.join("\n", commandNames);
         initTrimmer();
+        Auton.autoFactory = autoFactory;
+
     }
 
     private static Command sleep(double secs) {

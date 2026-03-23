@@ -26,9 +26,12 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.units.measure.Angle;
@@ -358,6 +361,33 @@ public final class Drive implements Subsystem {
         public Optional<Pose2d> samplePoseAt(double timestampSeconds) {
             return super.samplePoseAt(Utils.fpgaToCurrentTime(timestampSeconds));
         }
+
+
+        public void followTrajectory(SwerveSample sample) {
+                // Get the current pose of the robot
+            Pose2d pose = this.getState().Pose;
+
+            // Generate the next speeds for the robot
+            ChassisSpeeds speeds = new ChassisSpeeds(
+                sample.vx + SwerveConstants.xController.calculate(pose.getX(), sample.x),
+                sample.vy + SwerveConstants.yController.calculate(pose.getY(), sample.y),
+                sample.omega + SwerveConstants.headingController.calculate(pose.getRotation().getRadians(), sample.heading)
+            );
+
+            // Apply the generated speeds
+            this.setControl(
+                SwerveConstants.drive
+                .withVelocityX(speeds.vxMetersPerSecond)
+                .withVelocityY(speeds.vyMetersPerSecond)
+                .withRotationalRate(speeds.omegaRadiansPerSecond)
+            );
+        }
+
+        public Pose2d getPose() {
+            return this.getState().Pose;
+        }
+
+        
     }
 
     public static final class SwerveConstants {
@@ -374,6 +404,10 @@ public final class Drive implements Subsystem {
         private static final Slot0Configs driveGains = new Slot0Configs()
             .withKP(0.1).withKI(0).withKD(0)
             .withKS(0).withKV(0.124);
+
+        private static final PIDController xController = new PIDController(10.0, 0.0, 0.0);
+        private static final PIDController yController = new PIDController(10.0, 0.0, 0.0);
+        private static final PIDController headingController = new PIDController(7.5, 0.0, 0.0);
 
         // The closed-loop output type to use for the steer motors;
         // This affects the PID/FF gains for the steer motors

@@ -53,7 +53,7 @@ public final class Launcher extends SubsystemBase {
     private final ShooterKinematics kinematics = new ShooterKinematics();
 
     // Diagnostics & Telemetry
-    private double targetDist, targetRadialVelo, targetRPM, pitchTarget, yawTarget;
+    private double targetDist, targetRadialVelo, targetRPM, adjustedRPM, pitchTarget, yawTarget;
     private boolean blueAlliance, hurling, shooterSpeedReady, nearTrench;
     private double yawMinTorque=0, yawMaxTorque=0, pitchMinTorque=0, pitchMaxTorque=0;
 
@@ -231,16 +231,11 @@ public final class Launcher extends SubsystemBase {
             new Rotation2d(robotYaw + state.Speeds.omegaRadiansPerSecond * LauncherConstants.projectionTime)
         );
 
-        // Field Y-axis boundaries for the trench corridors (49.84 inches from walls)
-        boolean projectedInTrenchY = projectedPose.getY() < 1.266 || projectedPose.getY() > 6.803;
-        boolean currentInTrenchY = currentPose.getY() < 1.266 || currentPose.getY() > 6.803;
-
         // 3. Determine Active Target (Hub vs Hurling)
-        // Only switch to hurling if we are IN the trench Y-corridor AND past the start X-coordinate
-        hurling = projectedInTrenchY && (blueAlliance ? 
-            projectedPose.getX() > 4.625594 : 
-            projectedPose.getX() < 11.915394);
-
+        hurling = blueAlliance ? 
+            (projectedPose.getX() > 4.625594 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192)) : //TODO: CHECK
+            (projectedPose.getX() < 11.915394 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192));
+            
         Translation2d activeTarget = hurling ? 
             new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) : 
             new Translation2d(shootTarget.getX(), shootTarget.getY());
@@ -261,12 +256,12 @@ public final class Launcher extends SubsystemBase {
         yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees();
 
         // 7. Apply Safeties and Send to Motors
-        // Only drop the hood for clearance if we are near the X-entrance AND actually in the Y-corridor
-        nearTrench = currentInTrenchY && 
-                     (currentPose.getX() > (4.625594 - LauncherConstants.trenchTolerance) && 
-                      currentPose.getX() < (11.915394 + LauncherConstants.trenchTolerance));
+        nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61) || MathUtil.isNear(11.915394, currentPose.getX(), 0.61); //TODO: CHECK
+        
+        // 8. Compensate for RPM drop when the ball is launched
+        adjustedRPM = kinematics.getAdjustedFlywheelRPM(targetRPM);
 
-        launchMotor.setControl(new MotionMagicVelocityDutyCycle(targetRPM / 60.0));
+        launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60.0));
         setYaw(yawTarget);
         
         double currentRPM = launchMotor.getVelocity().getValueAsDouble() * 60.0;
@@ -295,7 +290,7 @@ public final class Launcher extends SubsystemBase {
     }
 
 
-    /** A yaw of NaN indicates that actually we will use dynamic yaw for hurling */
+    /* A yaw of NaN indicates that actually we will use dynamic yaw for hurling */
     public void simpleToggle(double launchSpeedRpm, double pitchDegrees, double yawDegrees) {
         toggledOn = !toggledOn;
         // System.out.println("launcher simpleToggle, toggledOn: " + toggledOn + ", target RPM=" + launchSpeedRpm);

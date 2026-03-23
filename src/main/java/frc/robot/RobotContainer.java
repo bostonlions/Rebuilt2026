@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import choreo.auto.AutoFactory;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -34,6 +35,8 @@ public final class RobotContainer {
     private final Intake intake;
     private final Launcher launcher;
     private final Trimmer trimmer = Trimmer.getInstance();
+    private final AutoFactory autoFactory;
+    
 
     // // Test toggles
     // private boolean launcherTestEnabled = false;
@@ -136,6 +139,17 @@ public final class RobotContainer {
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.L_JOYSTICK))
             .onTrue(new InstantCommand(() -> climber.setLowerHooks(Climber.Position.Prepare), climber));
 
+
+        autoFactory = new AutoFactory(
+            drivetrain::getPose, // A function that returns the current robot pose
+            drivetrain::resetPose, // A function that resets the current robot pose to the provided Pose2d
+            drivetrain::followTrajectory, // The drive subsystem trajectory follower 
+            true, // If alliance flipping should be enabled 
+            drivetrain // The drive subsystem
+        );
+
+
+        
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
          * These commands run in disabled mode (ignoringDisable), so you can
@@ -155,6 +169,8 @@ public final class RobotContainer {
     public Command getAutonomousCommand() {
         return Auton.getInstance().getCommand();
     }
+
+    
 
     public static final class ControlBoard {
         private static ControlBoard mInstance = null;
