@@ -231,11 +231,16 @@ public final class Launcher extends SubsystemBase {
             new Rotation2d(robotYaw + state.Speeds.omegaRadiansPerSecond * LauncherConstants.projectionTime)
         );
 
+        // Field Y-axis boundaries for the trench corridors (49.84 inches from walls)
+        boolean projectedInTrenchY = projectedPose.getY() < 1.266 || projectedPose.getY() > 6.803;
+        boolean currentInTrenchY = currentPose.getY() < 1.266 || currentPose.getY() > 6.803;
+
         // 3. Determine Active Target (Hub vs Hurling)
-        hurling = blueAlliance ? 
-            (projectedPose.getX() > 4.625594 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192)) : //TODO: CHECK
-            (projectedPose.getX() < 11.915394 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192));
-            
+        // Only switch to hurling if we are IN the trench Y-corridor AND past the start X-coordinate
+        hurling = projectedInTrenchY && (blueAlliance ? 
+            projectedPose.getX() > 4.625594 : 
+            projectedPose.getX() < 11.915394);
+
         Translation2d activeTarget = hurling ? 
             new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) : 
             new Translation2d(shootTarget.getX(), shootTarget.getY());
@@ -256,8 +261,11 @@ public final class Launcher extends SubsystemBase {
         yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees();
 
         // 7. Apply Safeties and Send to Motors
-        nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61) || MathUtil.isNear(11.915394, currentPose.getX(), 0.61); //TODO: CHECK
-        
+        // Only drop the hood for clearance if we are near the X-entrance AND actually in the Y-corridor
+        nearTrench = currentInTrenchY && 
+                     (currentPose.getX() > (4.625594 - LauncherConstants.trenchTolerance) && 
+                      currentPose.getX() < (11.915394 + LauncherConstants.trenchTolerance));
+
         launchMotor.setControl(new MotionMagicVelocityDutyCycle(targetRPM / 60.0));
         setYaw(yawTarget);
         
