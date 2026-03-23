@@ -32,4 +32,8 @@ public class ShooterKinematics {
 
         return lib.Util.clamp(rpm * LauncherConstants.kRPMScaleFactor, 0, 6065);
     }
+
+    public double getAdjustedFlywheelRPM(double targetRPM) {
+        return targetRPM * 1; //TODO: fit a feedforward graph to this
+    }
 }
