@@ -31,7 +31,7 @@ public final class Robot extends TimedRobot {
     private Command m_autonomousCommand;
     private boolean m_wasEnabledInTeleop = false;
     private int IMUmode = 1;
-    private final boolean useVision = false;
+    private final boolean useVision = true;
     /** When true, runs Limelight MegaTag2 and publishes pose to SmartDashboard for Elastic (Field widget). */
     private final boolean publishLimelightField = true;
     private final Field2d m_limelightField = new Field2d();
@@ -76,10 +76,9 @@ public final class Robot extends TimedRobot {
 
             if (useVision) {
                 System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
-                // Commenting out so vision does not interact with drivetrain pose estimation
-                //double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
-                //m_robotContainer.drivetrain.addVisionMeasurement(bp.pose, bp.timestampSeconds,
-                //     MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 0.01));
+                double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
+                m_robotContainer.drivetrain.addVisionMeasurement(bp.pose, bp.timestampSeconds,
+                    MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 9999));
             }
         }
 
@@ -93,6 +92,8 @@ public final class Robot extends TimedRobot {
     @Override
     public void disabledInit() {
         IMUmode = 1;
+        LimelightHelpers.SetThrottle("limelight-a", 100);
+        LimelightHelpers.SetThrottle("limelight-b", 100);
     }
 
     @Override
