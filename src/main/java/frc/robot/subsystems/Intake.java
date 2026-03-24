@@ -8,7 +8,9 @@ import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
+import com.ctre.phoenix6.controls.StaticBrake;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
@@ -29,15 +31,29 @@ import com.revrobotics.ResetMode;
 import com.revrobotics.PersistMode;
 
 import static frc.robot.Robot.kCANBusJustice;
+import static frc.robot.Robot.kCANBusRio;
 
 import frc.robot.Robot.Ports;
 
 public final class Intake extends SubsystemBase {
+    /**
+     * {@code false} = Neo Vortex (SparkFlex, CAN {@link Ports#INTAKE_SPIN}).<br>
+     * {@code true} = Kraken X60 (TalonFX, same ID on roboRIO CAN via {@link frc.robot.Robot#kCANBusRio}).<br>
+     * Only the selected motor is constructed; recompile after changing.
+     */
+    private static final boolean INTAKE_SPINNER_USE_KRAKEN = true;
+
     private static Intake instance = null;
     private final TalonFX extendMotor = new TalonFX(Ports.INTAKE_EXTEND, kCANBusJustice);
     private final CANcoder extendCANcoder = new CANcoder(15, kCANBusJustice);
-    private final SparkFlex spinMotor = new SparkFlex(Ports.INTAKE_SPIN, MotorType.kBrushless);
-    private final double inPosition = 0.1;
+
+    private final SparkFlex spinMotorNeo;
+    private final TalonFX spinMotorKraken;
+    private final StaticBrake krakenBrake;
+    private final DutyCycleOut krakenSpinDuty;
+    private final boolean spinnerIsKraken;
+
+    private final double inPosition = 0.35; //.35 is flush with bumper, .1 is flush with hard stop
     private final double outPosition = 0.9355;
     private final double intakeSpeed = 0.48;
 
@@ -47,16 +63,42 @@ public final class Intake extends SubsystemBase {
     }
 
     private Intake() {
+        spinnerIsKraken = INTAKE_SPINNER_USE_KRAKEN;
+
         extendCANcoder.getConfigurator().apply(new CANcoderConfiguration().withMagnetSensor(new MagnetSensorConfigs()
             .withMagnetOffset(0.118) // add 0.1 to measured value, and then add 0.1 to in and out positions; offset all values by 0.1
             .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
             .withAbsoluteSensorDiscontinuityPoint(1)));
-        final SparkFlexConfig config = new SparkFlexConfig();
-        config.smartCurrentLimit(40);
-        config.idleMode(IdleMode.kBrake);
-        config.inverted(true);
-        spinMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-        spinMotor.clearFaults();
+
+        if (spinnerIsKraken) {
+            spinMotorNeo = null;
+            krakenBrake = new StaticBrake();
+            krakenSpinDuty = new DutyCycleOut(0.75);
+            spinMotorKraken = new TalonFX(Ports.INTAKE_SPIN, kCANBusRio);
+            spinMotorKraken.getConfigurator().apply(new TalonFXConfiguration()
+                .withCurrentLimits(new CurrentLimitsConfigs()
+                    .withSupplyCurrentLimitEnable(true)
+                    .withSupplyCurrentLimit(40)
+                    .withSupplyCurrentLowerLimit(20)
+                    .withSupplyCurrentLowerTime(0.1))
+                .withMotorOutput(new MotorOutputConfigs()
+                    .withNeutralMode(NeutralModeValue.Brake)
+                    // Swap Clockwise_ / CounterClockwise_ to reverse spin direction vs positive duty.
+                    .withInverted(InvertedValue.Clockwise_Positive)));
+            spinMotorKraken.setControl(krakenBrake);
+        } else {
+            spinMotorKraken = null;
+            krakenBrake = null;
+            krakenSpinDuty = null;
+            spinMotorNeo = new SparkFlex(Ports.INTAKE_SPIN, MotorType.kBrushless);
+            final SparkFlexConfig config = new SparkFlexConfig();
+            config.smartCurrentLimit(40);
+            config.idleMode(IdleMode.kBrake);
+            config.inverted(true);
+            spinMotorNeo.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+            spinMotorNeo.clearFaults();
+        }
+
         extendMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withCurrentLimits(new CurrentLimitsConfigs()
                 .withSupplyCurrentLimitEnable(true)
@@ -81,7 +123,7 @@ public final class Intake extends SubsystemBase {
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
                 .withRotorToSensorRatio(3 * 48 / 16.0)
                 .withSensorToMechanismRatio(1)));
-        
+
         // Force the position into the 0-1 range, in case the initial reading is <0
         // so gets pushed up to near 1
         extendCANcoder.setPosition(MathUtil.inputModulus(extendCANcoder.getPosition().getValueAsDouble(), 0, 1));
@@ -113,7 +155,12 @@ public final class Intake extends SubsystemBase {
 
     public void setSpinner(final boolean spin) {
         spinning = spin;
-        if (spin) spinMotor.set(intakeSpeed); else spinMotor.stopMotor();
+        if (spinnerIsKraken) {
+            spinMotorKraken.setControl(spin ? krakenSpinDuty : krakenBrake);
+        } else {
+            if (spin) spinMotorNeo.set(intakeSpeed);
+            else spinMotorNeo.stopMotor();
+        }
     }
 
     public void toggleSpin() {
@@ -132,6 +179,7 @@ public final class Intake extends SubsystemBase {
 
         builder.addBooleanProperty("Extended", () -> extended, null);
         builder.addBooleanProperty("Spinning", () -> spinning, null);
+        builder.addBooleanProperty("Spinner is Kraken (compile-time)", () -> spinnerIsKraken, null);
         builder.addDoubleProperty("Extension", () -> extendMotor.getPosition().getValueAsDouble(), null);
     }
 }
