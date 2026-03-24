@@ -26,6 +26,8 @@ import com.ctre.phoenix6.hardware.Pigeon2;
 public final class Robot extends TimedRobot {
     public static final CANBus kCANBusGronk = new CANBus(Ports.CANBUS_DRIVE);
     public static final CANBus kCANBusJustice = new CANBus(Ports.CANBUS_OPS);
+    /** Native roboRIO CAN (empty bus name in Phoenix 6). */
+    public static final CANBus kCANBusRio = new CANBus("");
     public static final Pigeon2 pigeon = new Pigeon2(Ports.PIGEON, kCANBusGronk);
     private static final Timer clock = new Timer();
     private final RobotContainer m_robotContainer = new RobotContainer();
@@ -83,8 +85,8 @@ public final class Robot extends TimedRobot {
                     MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 9999));
             }
         }
-        Pose2d currentPose = m_robotContainer.drivetrain.getPose();
-        System.out.println("" + currentPose.getX()+ ", " + currentPose.getY());
+        //Pose2d currentPose = m_robotContainer.drivetrain.getPose();
+        //System.out.println("" + currentPose.getX()+ ", " + currentPose.getY());
 
         /*if (useVision && aValid && bValid) {
             System.out.print("dx: " + Math.abs(bpa.pose.getX() - bpb.pose.getX()));
