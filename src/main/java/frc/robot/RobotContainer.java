@@ -219,7 +219,7 @@ public final class RobotContainer {
                 forwardAxis = driver.getRawAxis(2);
                 strafeAxis = driver.getRawAxis(1);
                 double mag = Math.hypot(forwardAxis, strafeAxis);
-                double curveFactor = Math.pow(mag, 0.25);
+                double curveFactor = Math.pow(mag, 1.5); // changed from .25
                 forwardAxis = forwardAxis * curveFactor;
                 strafeAxis = strafeAxis * curveFactor;
             } else {
