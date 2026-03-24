@@ -87,30 +87,30 @@ public final class RobotContainer {
 
         // Simple shooting mode: X toggles everything on/off.
         // RPM target is adjustable at runtime via Trimmer ("Simple Launch RPM +- 100").
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
-            .onTrue(new InstantCommand(() -> launcher.simpleToggle()));
-        // Hurling mode: Right Bumper toggles everything on/off.
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
-            .onTrue(new InstantCommand(() -> launcher.simpleToggle(370/*0*/, 31, Double.NaN))); // Hurl shot
+        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
+        //     .onTrue(new InstantCommand(() -> launcher.simpleToggle()));
+        // // Hurling mode: Right Bumper toggles everything on/off.
+        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
+        //     .onTrue(new InstantCommand(() -> launcher.simpleToggle(370/*0*/, 31, Double.NaN))); // Hurl shot
         
         // UNCOMMENT WHEN READY FOR SHOOTNIG WITH POSE2D
-        // 1. Spin up / Aim (STANDBY)
-        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
-        //     .onTrue(new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY)))
-        //     .onFalse(new InstantCommand(() -> launcher.setMode(Launcher.Mode.OFF)));
+        //1. Spin up / Aim (STANDBY)
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
+            .onTrue(new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY)))
+            .onFalse(new InstantCommand(() -> launcher.setMode(Launcher.Mode.OFF)));
 
-        // // 2. Fire (Requires right bumper to be held, or you can make it standalone)
-        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
-        //     .onTrue(new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE)))
-        //     .onFalse(new InstantCommand(() -> {
-        //         // When you let go of the fire button, drop back to STANDBY if the spin-up 
-        //         // button is still held, otherwise turn OFF.
-        //         if (controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB)) {
-        //             launcher.setMode(Launcher.Mode.STANDBY);
-        //         } else {
-        //             launcher.setMode(Launcher.Mode.OFF);
-        //         }
-        //     }));
+        // 2. Fire (Requires right bumper to be held, or you can make it standalone)
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
+            .onTrue(new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE)))
+            .onFalse(new InstantCommand(() -> {
+                // When you let go of the fire button, drop back to STANDBY if the spin-up 
+                // button is still held, otherwise turn OFF.
+                if (controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB)) {
+                    launcher.setMode(Launcher.Mode.STANDBY);
+                } else {
+                    launcher.setMode(Launcher.Mode.OFF);
+                }
+            }));
 
 
 
