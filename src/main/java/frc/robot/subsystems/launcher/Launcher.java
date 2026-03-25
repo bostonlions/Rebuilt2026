@@ -240,10 +240,13 @@ public final class Launcher extends SubsystemBase {
             new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) : 
             new Translation2d(shootTarget.getX(), shootTarget.getY());
 
+        //System.out.println("Active target: (" + activeTarget.getX() + ", " + activeTarget.getY() + " )" );
+
         // 4. Calculate Distance and Radial Velocity
-        Translation2d robotToTarget = activeTarget.minus(projectedPose.getTranslation());
+        Translation2d robotToTarget = projectedPose.getTranslation().minus(activeTarget);
         targetDist = robotToTarget.getNorm();
         Rotation2d angleToTarget = robotToTarget.getAngle();
+        //System.out.println("AngleToTarget: " + angleToTarget);
 
         // Dot product of field velocity and the unit vector pointing at the target
         targetRadialVelo = (fieldVx * angleToTarget.getCos()) + (fieldVy * angleToTarget.getSin());
@@ -260,6 +263,8 @@ public final class Launcher extends SubsystemBase {
         
         // 8. Compensate for RPM drop when the ball is launched
         adjustedRPM = kinematics.getAdjustedFlywheelRPM(targetRPM);
+
+        System.out.println("AdjustedRPM" + adjustedRPM);
 
         launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60.0));
         setYaw(yawTarget);

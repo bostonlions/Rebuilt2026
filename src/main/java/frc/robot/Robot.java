@@ -85,7 +85,7 @@ public final class Robot extends TimedRobot {
                     MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 9999));
             }
         }
-        //Pose2d currentPose = m_robotContainer.drivetrain.getPose();
+        Pose2d currentPose = m_robotContainer.drivetrain.getPose();
         //System.out.println("" + currentPose.getX()+ ", " + currentPose.getY());
 
         /*if (useVision && aValid && bValid) {

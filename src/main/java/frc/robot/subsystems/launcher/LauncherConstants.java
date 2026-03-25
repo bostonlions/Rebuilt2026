@@ -6,8 +6,8 @@ import edu.wpi.first.math.geometry.Translation2d;
 public class LauncherConstants {
         // --- Turret & Yaw Constants ---
         public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-100., 260.); // in degrees
-        public static final double c11Offset = 0.919; // 11-tooth cancoder value at 0 degrees
-        public static final double c12Offset = 0.944; // 12-tooth cancoder value at 0 degrees
+        public static final double c11Offset = 0.009; // 11-tooth cancoder value at 0 degrees
+        public static final double c12Offset = 0.007; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
 
 
@@ -28,13 +28,13 @@ public class LauncherConstants {
         public static final double kDefaultLaunchD = 0.0;
 
         // --- Motor Duty Cycles ---
-        public static final double kFeederSpinnerMotionDuty = 0.1; // for washing machine speed
+        public static final double kFeederSpinnerMotionDuty = 0.5; // for washing machine speed
         public static final double kFeederSpinnerWithIntakeRequestDuty = 0.1; // for washing machine speed when intaking
-        public static final double kFeederRollerMotionDuty = 0.1; // for feeder roller speed
+        public static final double kFeederRollerMotionDuty = 0.5; // for feeder roller speed
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0; // (deg) to offset pitch if shooting based on distance is missing
-        public static final double kRPMScaleFactor = 0; // (m/s) scale to offset velocity if shooting based on distance is missing
+        public static final double kRPMScaleFactor = 1; // (m/s) scale to offset velocity if shooting based on distance is missing
         public static final double projectionTime = 0.1; // seconds into the future to predict position
         public static final double kRPMTolerance = 0.05; // 5 % tolerance when checking flywheel speed is within range
 
