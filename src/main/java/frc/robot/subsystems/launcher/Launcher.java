@@ -104,16 +104,6 @@ public final class Launcher extends SubsystemBase {
     private boolean dynamicYaw;
     private boolean forcingDown = false;
     private double pitchHomingStartTime = 0;
-    /**
-     * When true: hood always tracks {@link #pitchTarget} from distance/radial-velocity polynomial,
-     * ignoring trench proximity and flywheel speed. For testing / tuning only.
-     */
-    private boolean hoodPolynomialTestingOnly = true;
-    /**
-     * When true (with launcher {@link Mode#OFF}): turret follows {@link #yawTarget} from pose/motion
-     * so you can tune tracking while driving without STANDBY/FIRE. For testing only.
-     */
-    private boolean turretTrackingTestingOnly = true;
 
     public static Launcher getInstance() {
         if (instance == null) instance = new Launcher();
@@ -177,11 +167,11 @@ public final class Launcher extends SubsystemBase {
         pitchMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withSlot0(new Slot0Configs().withKP(pitchP).withKI(pitchI).withKD(pitchD))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(100)
-                .withMotionMagicAcceleration(400)
-                .withMotionMagicJerk(1200))
+                .withMotionMagicCruiseVelocity(60000)
+                .withMotionMagicAcceleration(100000)
+                .withMotionMagicJerk(1600000))
             .withTorqueCurrent(new TorqueCurrentConfigs()
-                .withPeakForwardTorqueCurrent(Amps.of(20)).withPeakReverseTorqueCurrent(Amps.of(-20)))
+                .withPeakForwardTorqueCurrent(Amps.of(15)).withPeakReverseTorqueCurrent(Amps.of(-15)))
         );
     }
 
@@ -204,42 +194,26 @@ public final class Launcher extends SubsystemBase {
     }
 
     /**
-     * Hood exit angle above horizontal (deg), consistent with {@link #setPitch}:
-     * {@code pitch = motorRotations * pitchGearRatio + minPitch}.
+     * 
+     * @return pitch in degrees
      */
     private double getPitch() {
-        return pitchMotor.getPosition().getValueAsDouble() * LauncherConstants.pitchGearRatio
-            + LauncherConstants.pitchBounds.getFirst();
+        return pitchMotor.getPosition().getValueAsDouble() * LauncherConstants.pitchGearRatio + LauncherConstants.pitchBounds.getFirst();
     }
 
-    private double lastPitchTarget = Double.NaN;
-
+    
+     private double lastPitchTarget = 0;
+    
     private void setPitch(double degrees) {
-        if (Double.isFinite(lastPitchTarget) && Math.abs(degrees - lastPitchTarget) < 0.1) {
-            return;
-        }
+        if (Math.abs(degrees - lastPitchTarget) < 0.1) return; // Ignore tiny changes
         lastPitchTarget = degrees;
-        double minP = LauncherConstants.pitchBounds.getFirst();
-        double maxP = LauncherConstants.pitchBounds.getSecond();
-        if (degrees < minP || degrees > maxP) {
+        if (degrees < LauncherConstants.pitchBounds.getFirst() || degrees > LauncherConstants.pitchBounds.getSecond()) {
             System.out.println("Invalid pitch target: " + degrees);
             return;
         }
-        double rotations = (degrees - minP) / LauncherConstants.pitchGearRatio;
-        pitchMotor.setControl(new MotionMagicDutyCycle(rotations));
-    }
-
-    /** Operator presets: always send Motion Magic (ignores lastPitchTarget debounce). */
-    public void commandHoodAngleDegrees(double degrees) {
-        lastPitchTarget = Double.NaN;
-        double minP = LauncherConstants.pitchBounds.getFirst();
-        double maxP = LauncherConstants.pitchBounds.getSecond();
-        setPitch(MathUtil.clamp(degrees, minP, maxP));
-    }
-
-    /** Hood to homed minimum pitch (same reference as after forcePitchDown / encoder zero). */
-    public void commandHoodToHomedZero() {
-        commandHoodAngleDegrees(LauncherConstants.pitchBounds.getFirst());
+        
+        //pitchMotor.setControl(new MotionMagicDutyCycle((degrees - LauncherConstants.pitchBounds.getFirst()) / LauncherConstants.pitchGearRatio));
+        pitchMotor.setControl(new MotionMagicDutyCycle((LauncherConstants.pitchBounds.getSecond() - degrees) / LauncherConstants.pitchGearRatio));
     }
     /**
      * 
@@ -250,67 +224,70 @@ public final class Launcher extends SubsystemBase {
     }
 
     /**
-     * Updates distance, radial velocity, hub/hurl selection, and polynomial targets. No motor outputs.
+     * Calculates targeting variables using WPILib Geometry and queries the Polynomial Surface.
      */
-    private void computeShootingTargets() {
+    private void prepToShoot() {
         SwerveDriveState state = Drive.Drivetrain.getInstance().getState();
         Pose2d currentPose = state.Pose;
-
+        
+        // 1. Convert Robot-Centric Speeds to Field-Centric Speeds
         double rvx = state.Speeds.vxMetersPerSecond;
         double rvy = state.Speeds.vyMetersPerSecond;
         double robotYaw = currentPose.getRotation().getRadians();
         double fieldVx = rvx * Math.cos(robotYaw) - rvy * Math.sin(robotYaw);
         double fieldVy = rvx * Math.sin(robotYaw) + rvy * Math.cos(robotYaw);
 
+        // 2. Project pose slightly into the future based on velocity
         Pose2d projectedPose = new Pose2d(
             currentPose.getX() + fieldVx * LauncherConstants.projectionTime,
             currentPose.getY() + fieldVy * LauncherConstants.projectionTime,
             new Rotation2d(robotYaw + state.Speeds.omegaRadiansPerSecond * LauncherConstants.projectionTime)
         );
 
-        hurling = blueAlliance ?
-            (projectedPose.getX() > 4.625594 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192)) :
+        // 3. Determine Active Target (Hub vs Hurling)
+        hurling = blueAlliance ? 
+            (projectedPose.getX() > 4.625594 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192)) : //TODO: CHECK
             (projectedPose.getX() < 11.915394 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192));
-
-        Translation2d activeTarget = hurling ?
-            new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) :
+            
+        Translation2d activeTarget = hurling ? 
+            new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) : 
             new Translation2d(shootTarget.getX(), shootTarget.getY());
 
+        //System.out.println("Active target: (" + activeTarget.getX() + ", " + activeTarget.getY() + " )" );
+
+        // 4. Calculate Distance and Radial Velocity
         Translation2d robotToTarget = activeTarget.minus(projectedPose.getTranslation());
         targetDist = robotToTarget.getNorm();
         Rotation2d angleToTarget = robotToTarget.getAngle();
+        //System.out.println("AngleToTarget: " + angleToTarget);
 
+        // Dot product of field velocity and the unit vector pointing at the target
         targetRadialVelo = (fieldVx * angleToTarget.getCos()) + (fieldVy * angleToTarget.getSin());
 
+        // 5. Query the Polynomial Fit
         targetRPM = kinematics.getTargetFlywheelRPM(targetDist, targetRadialVelo);
         pitchTarget = kinematics.getTargetHoodAngle(targetDist, targetRadialVelo);
-        // Adding a manual aim correction
-        yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees() + 1;
+        
+        // 6. Calculate Yaw Target (Angle to target minus projected robot heading)
+        yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees();
 
-        nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61)
-            || MathUtil.isNear(11.915394, currentPose.getX(), 0.61);
-    }
-
-    /**
-     * Calculates targeting variables using WPILib Geometry and queries the Polynomial Surface.
-     */
-    private void prepToShoot() {
-        computeShootingTargets();
-
+        // 7. Apply Safeties and Send to Motors
+        nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61) || MathUtil.isNear(11.915394, currentPose.getX(), 0.61); //TODO: CHECK
+        
+        // 8. Compensate for RPM drop when the ball is launched
         adjustedRPM = kinematics.getAdjustedFlywheelRPM(targetRPM);
 
         System.out.println("AdjustedRPM" + adjustedRPM);
 
         launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60.0));
         setYaw(yawTarget);
-
+        
         double currentRPM = launchMotor.getVelocity().getValueAsDouble() * 60.0;
-        shooterSpeedReady = targetRPM > 0 && Math.abs(currentRPM - targetRPM) < (targetRPM * LauncherConstants.kRPMTolerance);
+        shooterSpeedReady = targetRPM > 0 && Math.abs(currentRPM - targetRPM) < (targetRPM * LauncherConstants.kRPMTolerance); // Within 5% tolerance
 
-        if (hoodPolynomialTestingOnly) {
-            setPitch(pitchTarget);
-        } else if (nearTrench || !shooterSpeedReady) {
+        if (nearTrench || !shooterSpeedReady) {
             setPitch(LauncherConstants.pitchBounds.getFirst());
+            // if (mode == Mode.FIRE) setMode(Mode.STANDBY); 
         } else {
             setPitch(pitchTarget);
         }
@@ -395,8 +372,6 @@ public final class Launcher extends SubsystemBase {
 
     public void forcePitchDown() {
         forcingDown = true;
-        lastPitchTarget = Double.NaN;
-        pitchHomingStartTime = Timer.getFPGATimestamp();
         pitchMotor.setControl(new DutyCycleOut(-0.1));
     }
 
@@ -404,14 +379,8 @@ public final class Launcher extends SubsystemBase {
     public void periodic() {
         if (mode != Mode.OFF) {
             prepToShoot();
-        } else if (!forcingDown && (hoodPolynomialTestingOnly || turretTrackingTestingOnly)) {
-            computeShootingTargets();
-            if (hoodPolynomialTestingOnly) {
-                setPitch(pitchTarget);
-            }
-            if (turretTrackingTestingOnly) {
-                setYaw(yawTarget);
-            }
+        } else if (!forcingDown) {
+            prepToShoot();
         }
 
         // Run feeder spinner at slow rate when intake is spinning (unless we're firing)
@@ -453,7 +422,7 @@ public final class Launcher extends SubsystemBase {
             }
         }
 
-        if (toggledOn && dynamicYaw && !turretTrackingTestingOnly) {
+        if (toggledOn && dynamicYaw) {
             setYaw(-Drive.Drivetrain.getInstance().getState().Pose.getRotation().getDegrees() + (blueAlliance ? 0 : 180));
         }
     }
@@ -464,14 +433,6 @@ public final class Launcher extends SubsystemBase {
         builder.setActuator(true);
 
         builder.addStringProperty("Mode", () -> mode.toString(), null);
-        builder.addBooleanProperty(
-            "Hood poly testing (ignore trench/RPM gate)",
-            () -> hoodPolynomialTestingOnly,
-            v -> hoodPolynomialTestingOnly = v);
-        builder.addBooleanProperty(
-            "Turret tracking testing (OFF: aim while driving)",
-            () -> turretTrackingTestingOnly,
-            v -> turretTrackingTestingOnly = v);
         builder.addDoubleProperty("Seconds left until hopper color switches:", () -> Robot.getCountDown(), null);
         builder.addBooleanProperty("hurling", () -> hurling, null);
         builder.addBooleanProperty("shooterSpeedReady", () -> shooterSpeedReady, null);

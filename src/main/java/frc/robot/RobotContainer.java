@@ -113,13 +113,6 @@ public final class RobotContainer {
                 }
             }));
 
-        // Hood presets (operator): A = fixed angle, B = homed zero (min pitch). STANDBY/FIRE will override hood from vision each periodic.
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.A))
-            .onTrue(new InstantCommand(
-                () -> launcher.commandHoodAngleDegrees(LauncherConstants.kHoodPresetButtonADegrees), launcher));
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.B))
-            .onTrue(new InstantCommand(() -> launcher.commandHoodToHomedZero(), launcher));
-
         climber = Climber.getInstance();
         SmartDashboard.putData(climber);
         // Elevator is open-loop from operator left stick Y in Robot.teleopPeriodic (Climber.driveFromStick).
