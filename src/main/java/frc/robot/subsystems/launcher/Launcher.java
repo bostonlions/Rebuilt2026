@@ -167,11 +167,11 @@ public final class Launcher extends SubsystemBase {
         pitchMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withSlot0(new Slot0Configs().withKP(pitchP).withKI(pitchI).withKD(pitchD))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(60000)
-                .withMotionMagicAcceleration(100000)
-                .withMotionMagicJerk(1600000))
+                .withMotionMagicCruiseVelocity(60)
+                .withMotionMagicAcceleration(200)
+                .withMotionMagicJerk(1000))
             .withTorqueCurrent(new TorqueCurrentConfigs()
-                .withPeakForwardTorqueCurrent(Amps.of(15)).withPeakReverseTorqueCurrent(Amps.of(-15)))
+                .withPeakForwardTorqueCurrent(Amps.of(20)).withPeakReverseTorqueCurrent(Amps.of(-20)))
         );
     }
 
@@ -217,6 +217,19 @@ public final class Launcher extends SubsystemBase {
         }
         double rotations = (degrees - minP) / LauncherConstants.pitchGearRatio;
         pitchMotor.setControl(new MotionMagicDutyCycle(rotations));
+    }
+
+    /** Operator presets: always send Motion Magic (ignores lastPitchTarget debounce). */
+    public void commandHoodAngleDegrees(double degrees) {
+        lastPitchTarget = Double.NaN;
+        double minP = LauncherConstants.pitchBounds.getFirst();
+        double maxP = LauncherConstants.pitchBounds.getSecond();
+        setPitch(MathUtil.clamp(degrees, minP, maxP));
+    }
+
+    /** Hood to homed minimum pitch (same reference as after forcePitchDown / encoder zero). */
+    public void commandHoodToHomedZero() {
+        commandHoodAngleDegrees(LauncherConstants.pitchBounds.getFirst());
     }
     /**
      * 

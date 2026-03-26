@@ -17,6 +17,8 @@ public class LauncherConstants {
         public static final double minPitch = 90 - maxHoodAngle; // Ball exit angle relative to horizontal
         public static final double maxPitch = 90 - minHoodAngle; // 0 meaning a shot paralell to the floor and 90 meaning vertical shot
         public static final Pair<Double, Double> pitchBounds = new Pair<Double, Double>(minPitch, maxPitch); // min, max pitch -- in degrees
+        /** Operator A: hood preset (exit angle above horizontal, deg). Clamped to pitchBounds. */
+        public static final double kHoodPresetButtonADegrees = 50.0;
         public static final double pitchGearRatio = (1 / 53.4545) * 360; // In pitch degrees per rotation because hood has a 1:53.4545 ratio.
         /** After homing: Talon integrated position is set to this so software min pitch matches the hard stop. */
         public static final double pitchLimitRotations = -0.25;
