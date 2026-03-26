@@ -28,6 +28,7 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -102,6 +103,7 @@ public final class Launcher extends SubsystemBase {
     private boolean toggledOn = false;
     private boolean dynamicYaw;
     private boolean forcingDown = false;
+    private double pitchHomingStartTime = 0;
 
     public static Launcher getInstance() {
         if (instance == null) instance = new Launcher();
@@ -192,26 +194,29 @@ public final class Launcher extends SubsystemBase {
     }
 
     /**
-     * 
-     * @return pitch in degrees
+     * Hood exit angle above horizontal (deg), consistent with {@link #setPitch}:
+     * {@code pitch = motorRotations * pitchGearRatio + minPitch}.
      */
     private double getPitch() {
-        return pitchMotor.getPosition().getValueAsDouble() * LauncherConstants.pitchGearRatio + LauncherConstants.pitchBounds.getFirst();
+        return pitchMotor.getPosition().getValueAsDouble() * LauncherConstants.pitchGearRatio
+            + LauncherConstants.pitchBounds.getFirst();
     }
 
-    
-     private double lastPitchTarget = 0;
-    
+    private double lastPitchTarget = Double.NaN;
+
     private void setPitch(double degrees) {
-        if (Math.abs(degrees - lastPitchTarget) < 0.1) return; // Ignore tiny changes
+        if (Double.isFinite(lastPitchTarget) && Math.abs(degrees - lastPitchTarget) < 0.1) {
+            return;
+        }
         lastPitchTarget = degrees;
-        if (degrees < LauncherConstants.pitchBounds.getFirst() || degrees > LauncherConstants.pitchBounds.getSecond()) {
+        double minP = LauncherConstants.pitchBounds.getFirst();
+        double maxP = LauncherConstants.pitchBounds.getSecond();
+        if (degrees < minP || degrees > maxP) {
             System.out.println("Invalid pitch target: " + degrees);
             return;
         }
-        
-        //pitchMotor.setControl(new MotionMagicDutyCycle((degrees - LauncherConstants.pitchBounds.getFirst()) / LauncherConstants.pitchGearRatio));
-        pitchMotor.setControl(new MotionMagicDutyCycle((LauncherConstants.pitchBounds.getSecond() - degrees) / LauncherConstants.pitchGearRatio));
+        double rotations = (degrees - minP) / LauncherConstants.pitchGearRatio;
+        pitchMotor.setControl(new MotionMagicDutyCycle(rotations));
     }
     /**
      * 
@@ -370,6 +375,8 @@ public final class Launcher extends SubsystemBase {
 
     public void forcePitchDown() {
         forcingDown = true;
+        lastPitchTarget = Double.NaN;
+        pitchHomingStartTime = Timer.getFPGATimestamp();
         pitchMotor.setControl(new DutyCycleOut(-0.1));
     }
 
@@ -399,15 +406,22 @@ public final class Launcher extends SubsystemBase {
         if (yawTorque < yawMinTorque) yawMinTorque = yawTorque;
         if (yawTorque > yawMaxTorque) yawMaxTorque = yawTorque;
 
-        if (
-            forcingDown &&
-            (pitchTorque < LauncherConstants.pitchForceTorque) &&
-            (pitchMotor.getVelocity().getValueAsDouble() > LauncherConstants.pitchForceVelocityLimit)
-        ) {
-            System.out.println("Pitch bottom limit hit, marking min pitch");
-            pitchMotor.setPosition(LauncherConstants.pitchLimitRotations);
-            forcingDown = false;
-            setPitch(LauncherConstants.pitchBounds.getFirst());
+        if (forcingDown) {
+            double vel = pitchMotor.getVelocity().getValueAsDouble();
+            boolean stalled = Math.abs(vel) < LauncherConstants.pitchHomingStallVelocityEpsilon
+                && Math.abs(pitchTorque) > LauncherConstants.pitchHomingStallTorqueAmps;
+            boolean timedOut = Timer.getFPGATimestamp() - pitchHomingStartTime
+                >= LauncherConstants.pitchHomingTimeoutSeconds;
+            if (stalled || timedOut) {
+                if (timedOut && !stalled) {
+                    DriverStation.reportWarning(
+                        "[Launcher] Pitch homing finished by timeout — check stall torque/velocity thresholds.", false);
+                }
+                pitchMotor.setPosition(LauncherConstants.pitchLimitRotations);
+                forcingDown = false;
+                lastPitchTarget = Double.NaN;
+                setPitch(LauncherConstants.pitchBounds.getFirst());
+            }
         }
 
         if (toggledOn && dynamicYaw)

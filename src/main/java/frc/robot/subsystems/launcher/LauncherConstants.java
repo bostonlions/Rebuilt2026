@@ -17,10 +17,15 @@ public class LauncherConstants {
         public static final double minPitch = 90 - maxHoodAngle; // Ball exit angle relative to horizontal
         public static final double maxPitch = 90 - minHoodAngle; // 0 meaning a shot paralell to the floor and 90 meaning vertical shot
         public static final Pair<Double, Double> pitchBounds = new Pair<Double, Double>(minPitch, maxPitch); // min, max pitch -- in degrees
-        public static final double pitchGearRatio = (1 / 53.4545) * 360; // In pitch degrees per rotation because hood has a 1:53.4545 ratio. 
-        public static final double pitchForceTorque = -10;
-        public static final double pitchForceVelocityLimit = -0.1;
+        public static final double pitchGearRatio = (1 / 53.4545) * 360; // In pitch degrees per rotation because hood has a 1:53.4545 ratio.
+        /** After homing: Talon integrated position is set to this so software min pitch matches the hard stop. */
         public static final double pitchLimitRotations = -0.25;
+        /** Force-down homing: treat as stalled when |pitch motor velocity| is below this (rotations/s). */
+        public static final double pitchHomingStallVelocityEpsilon = 0.2;
+        /** Force-down homing: treat as stalled when |torque current| exceeds this (A). */
+        public static final double pitchHomingStallTorqueAmps = 5.0;
+        /** If stall is never detected, finish homing after this (s) so the motor does not run open-loop forever. */
+        public static final double pitchHomingTimeoutSeconds = 3.0;
 
         // --- Default PID & Control Tuning ---
         public static final double kDefaultLaunchP = 0.02;
