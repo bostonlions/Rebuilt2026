@@ -404,6 +404,12 @@ public final class Drive implements Subsystem {
         private static final double kVisionOutlierTranslationM = 0.5;
         /** Reject if any tag has ambiguity above this (Limelight raw fiducial ambiguity). */
         private static final double kMaxTagAmbiguity = 0.35;
+        /**
+         * Added to fused field heading for {@link LimelightHelpers#SetRobotOrientation}.
+         * Limelight expects WPILib blue-origin field yaw (0° = toward red alliance wall). +180° fixes a
+         * common raw-gyro vs field-frame mismatch; set to 0 if Limelight disagrees (try -180 if flipped).
+         */
+        private static final double kLimelightMegaTag2YawOffsetDeg = 180.0;
         /** Trust gyro for heading: very large theta std dev (radians). */
         private static final double kVisionThetaStdDevRad = 999999.0;
         /** XY std dev (m): base + scale * avg tag distance (farther tags noisier). */
@@ -434,7 +440,9 @@ public final class Drive implements Subsystem {
                 return;
             }
 
-            double yawDeg = Robot.pigeon.getYaw().getValue().in(Degrees);
+            // WPILib field heading (same frame as wpiBlue MegaTag2 and pose fusion), not raw Pigeon yaw.
+            double yawDeg = getPose().getRotation().plus(Rotation2d.fromDegrees(kLimelightMegaTag2YawOffsetDeg)).getDegrees();
+            // double yawDeg = (Robot.pigeon.getYaw().getValue().in(Degrees) + 180) % 360;
             double yawRateDegPerSec = Robot.pigeon.getAngularVelocityZWorld().getValue().in(DegreesPerSecond);
             int imuMode = DriverStation.isDisabled() ? 0 : 4;
 
