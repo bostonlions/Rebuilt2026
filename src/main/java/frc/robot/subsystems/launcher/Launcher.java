@@ -177,9 +177,9 @@ public final class Launcher extends SubsystemBase {
         pitchMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withSlot0(new Slot0Configs().withKP(pitchP).withKI(pitchI).withKD(pitchD))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(60)
-                .withMotionMagicAcceleration(200)
-                .withMotionMagicJerk(1000))
+                .withMotionMagicCruiseVelocity(100)
+                .withMotionMagicAcceleration(400)
+                .withMotionMagicJerk(1200))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(Amps.of(20)).withPeakReverseTorqueCurrent(Amps.of(-20)))
         );
@@ -284,7 +284,8 @@ public final class Launcher extends SubsystemBase {
 
         targetRPM = kinematics.getTargetFlywheelRPM(targetDist, targetRadialVelo);
         pitchTarget = kinematics.getTargetHoodAngle(targetDist, targetRadialVelo);
-        yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees();
+        // Adding a manual aim correction
+        yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees() + 1;
 
         nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61)
             || MathUtil.isNear(11.915394, currentPose.getX(), 0.61);

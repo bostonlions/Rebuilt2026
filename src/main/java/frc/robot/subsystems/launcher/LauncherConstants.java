@@ -6,8 +6,8 @@ import edu.wpi.first.math.geometry.Translation2d;
 public class LauncherConstants {
         // --- Turret & Yaw Constants ---
         public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-100., 260.); // in degrees
-        public static final double c11Offset = 0.009; // 11-tooth cancoder value at 0 degrees
-        public static final double c12Offset = 0.007; // 12-tooth cancoder value at 0 degrees
+        public static final double c11Offset = 0.015; // 11-tooth cancoder value at 0 degrees
+        public static final double c12Offset = 0.0362; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
 
 
