@@ -116,29 +116,7 @@ public final class RobotContainer {
 
         climber = Climber.getInstance();
         SmartDashboard.putData(climber);
-
-        // // Start button re-zeros
-        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.START))
-        //     .onTrue(new InstantCommand(() -> climber.forceStow()));
-        // Operator Xbox A button: lower hooks to Clinch CANCoder position
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.A))
-            .onTrue(new InstantCommand(() -> climber.setLowerHooks(Climber.Position.Clinch), climber));
-        // Operator Xbox B button: lower hooks to Grab CANCoder position
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.B))
-            .onTrue(new InstantCommand(() -> climber.setLowerHooks(Climber.Position.Grab), climber));
-        // Operator Xbox Y button: lower hooks to Prepare CANCoder position
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.Y))
-            .onTrue(new InstantCommand(() -> climber.setLowerHooks(Climber.Position.Prepare), climber));
-        // Right stick click: prepare to climb TODO ensure intake is stowed first
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.R_JOYSTICK))
-            .onTrue(new InstantCommand(() -> climber.prepToClimb(), climber));
-        // Screenshot/Share button (button 7): stow the climber
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.BACK))
-            .onTrue(new InstantCommand(() -> climber.stow(), climber));
-        // Left stick click: lower hooks to Prepare
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.L_JOYSTICK))
-            .onTrue(new InstantCommand(() -> climber.setLowerHooks(Climber.Position.Prepare), climber));
-
+        // Elevator is open-loop from operator left stick Y in Robot.teleopPeriodic (Climber.driveFromStick).
 
         autoFactory = new AutoFactory(
             drivetrain::getPose, // A function that returns the current robot pose

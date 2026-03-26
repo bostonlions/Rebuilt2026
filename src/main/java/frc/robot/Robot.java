@@ -149,11 +149,11 @@ public final class Robot extends TimedRobot {
             if (clock.hasElapsed(25)) clock.reset();
         } else m_wasEnabledInTeleop = false;
 
-        m_robotContainer.climber.move(
-            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y),
-            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.LEFT, RobotContainer.ControlBoard.CustomXboxController.Axis.X),
-            RobotContainer.controller.operator.getAxis(RobotContainer.ControlBoard.CustomXboxController.Side.RIGHT, RobotContainer.ControlBoard.CustomXboxController.Axis.Y)
-        );
+        // Elevator: operator left stick Y — up / down; centered stick stops immediately (see Climber.driveFromStick).
+        m_robotContainer.climber.driveFromStick(
+            RobotContainer.controller.operator.getAxis(
+                RobotContainer.ControlBoard.CustomXboxController.Side.LEFT,
+                RobotContainer.ControlBoard.CustomXboxController.Axis.Y));
     }
 
     /** Gets the number of seconds left of hopper being for current color */
