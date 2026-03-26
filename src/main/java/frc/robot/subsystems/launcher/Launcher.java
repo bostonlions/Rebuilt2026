@@ -28,7 +28,6 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -103,7 +102,6 @@ public final class Launcher extends SubsystemBase {
     private boolean toggledOn = false;
     private boolean dynamicYaw;
     private boolean forcingDown = false;
-    private double pitchHomingStartTime = 0;
 
     public static Launcher getInstance() {
         if (instance == null) instance = new Launcher();
@@ -377,13 +375,10 @@ public final class Launcher extends SubsystemBase {
 
     @Override
     public void periodic() {
-        if (mode != Mode.OFF) {
-            prepToShoot();
-        } else if (!forcingDown) {
+        // Run feeder spinner at slow rate when intake is spinning (unless we're firing)
+        if (mode != Mode.OFF) { 
             prepToShoot();
         }
-
-        // Run feeder spinner at slow rate when intake is spinning (unless we're firing)
 
         if (mode == Mode.FIRE && !toggledOn) {
             // Only push the ball in if the flywheel is at speed and we are out of trench
@@ -404,27 +399,19 @@ public final class Launcher extends SubsystemBase {
         if (yawTorque < yawMinTorque) yawMinTorque = yawTorque;
         if (yawTorque > yawMaxTorque) yawMaxTorque = yawTorque;
 
-        if (forcingDown) {
-            double vel = pitchMotor.getVelocity().getValueAsDouble();
-            boolean stalled = Math.abs(vel) < LauncherConstants.pitchHomingStallVelocityEpsilon
-                && Math.abs(pitchTorque) > LauncherConstants.pitchHomingStallTorqueAmps;
-            boolean timedOut = Timer.getFPGATimestamp() - pitchHomingStartTime
-                >= LauncherConstants.pitchHomingTimeoutSeconds;
-            if (stalled || timedOut) {
-                if (timedOut && !stalled) {
-                    DriverStation.reportWarning(
-                        "[Launcher] Pitch homing finished by timeout — check stall torque/velocity thresholds.", false);
-                }
-                pitchMotor.setPosition(LauncherConstants.pitchLimitRotations);
-                forcingDown = false;
-                lastPitchTarget = Double.NaN;
-                setPitch(LauncherConstants.pitchBounds.getFirst());
-            }
+        if (
+            forcingDown &&
+            (pitchTorque < LauncherConstants.pitchForceTorque) &&
+            (pitchMotor.getVelocity().getValueAsDouble() > LauncherConstants.pitchForceVelocityLimit)
+        ) {
+            System.out.println("Pitch bottom limit hit, marking min pitch");
+            pitchMotor.setPosition(LauncherConstants.pitchLimitRotations);
+            forcingDown = false;
+            setPitch(LauncherConstants.pitchBounds.getFirst());
         }
 
-        if (toggledOn && dynamicYaw) {
+        if (toggledOn && dynamicYaw)
             setYaw(-Drive.Drivetrain.getInstance().getState().Pose.getRotation().getDegrees() + (blueAlliance ? 0 : 180));
-        }
     }
 
     @Override

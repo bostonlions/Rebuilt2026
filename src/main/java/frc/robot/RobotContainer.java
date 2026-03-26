@@ -25,7 +25,6 @@ import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Drive.Drivetrain;
 import frc.robot.subsystems.Drive.SwerveConstants;
 import frc.robot.subsystems.launcher.Launcher;
-import frc.robot.subsystems.launcher.LauncherConstants;
 import frc.robot.subsystems.Trimmer;
 
 public final class RobotContainer {
@@ -112,6 +111,8 @@ public final class RobotContainer {
                     launcher.setMode(Launcher.Mode.OFF);
                 }
             }));
+
+
 
         climber = Climber.getInstance();
         SmartDashboard.putData(climber);

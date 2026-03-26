@@ -21,13 +21,6 @@ public class LauncherConstants {
         public static final double pitchForceTorque = -10;
         public static final double pitchForceVelocityLimit = -0.1;
         public static final double pitchLimitRotations = -0.25;
-        /** Force-down homing: treat as stalled when |pitch motor velocity| is below this (rotations/s). */
-        public static final double pitchHomingStallVelocityEpsilon = 0.2;
-        /** Force-down homing: treat as stalled when |torque current| exceeds this (A). */
-        public static final double pitchHomingStallTorqueAmps = 5.0;
-        /** If stall is never detected, finish homing after this (s) so the motor does not run open-loop forever. */
-        public static final double pitchHomingTimeoutSeconds = 3.0;
-
 
         // --- Default PID & Control Tuning ---
         public static final double kDefaultLaunchP = 0.02;
