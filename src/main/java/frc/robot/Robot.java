@@ -53,7 +53,7 @@ public final class Robot extends TimedRobot {
 
         if (!publishLimelightField && !useVision) return;
 
-        final double yaw = pigeon.getYaw().getValue().in(Units.Degrees);
+        final double yaw = m_robotContainer.drivetrain.getPose().getRotation().getDegrees();
 
         LimelightHelpers.SetRobotOrientation("limelight-a", yaw, 0, 0, 0, 0, 0);
         LimelightHelpers.SetIMUMode("limelight-a", IMUmode);
@@ -61,9 +61,9 @@ public final class Robot extends TimedRobot {
         LimelightHelpers.SetRobotOrientation("limelight-b", yaw, 0, 0, 0, 0, 0);
         LimelightHelpers.SetIMUMode("limelight-b", IMUmode);
 
-        PoseEstimate bpa = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-a");
+        PoseEstimate bpa = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-a");
         boolean aValid = bpa != null && bpa.rawFiducials != null && bpa.rawFiducials.length != 0;
-        PoseEstimate bpb = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight-b");
+        PoseEstimate bpb = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-b");
         boolean bValid = bpb != null && bpb.rawFiducials != null && bpb.rawFiducials.length != 0;
         PoseEstimate bp; // the pose estimate to actually use; determined later
 
@@ -82,7 +82,7 @@ public final class Robot extends TimedRobot {
                 //System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
                 double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
                 m_robotContainer.drivetrain.addVisionMeasurement(bp.pose, bp.timestampSeconds,
-                    MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 9999));
+                    MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 99999));
             }
         }
         Pose2d currentPose = m_robotContainer.drivetrain.getPose();
@@ -97,7 +97,7 @@ public final class Robot extends TimedRobot {
 
     @Override
     public void disabledInit() {
-        IMUmode = 1;
+        IMUmode = 0;
         LimelightHelpers.SetThrottle("limelight-a", 100);
         LimelightHelpers.SetThrottle("limelight-b", 100);
     }

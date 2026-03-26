@@ -70,6 +70,8 @@ public final class Launcher extends SubsystemBase {
     private double launchD = LauncherConstants.kDefaultLaunchD;
     private double launchI = LauncherConstants.kDefaultLaunchI;
 
+    private double pitchP = 0.1, pitchI = 0.0, pitchD = 0.0;
+
     private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBusJustice);
     private final TalonFX pitchMotor = new TalonFX(Ports.PITCH_MOTOR, kCANBusJustice);
     private final TalonFX yawMotor = new TalonFX(Ports.YAW_MOTOR, kCANBusJustice);
@@ -122,15 +124,7 @@ public final class Launcher extends SubsystemBase {
             throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
         });
 
-        pitchMotor.getConfigurator().apply(new TalonFXConfiguration()
-            .withSlot0(new Slot0Configs().withKP(0.1).withKI(0.2))
-            .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(60)
-                .withMotionMagicAcceleration(100)
-                .withMotionMagicJerk(1000))
-            .withTorqueCurrent(new TorqueCurrentConfigs()
-                .withPeakForwardTorqueCurrent(Amps.of(15)).withPeakReverseTorqueCurrent(Amps.of(-15)))
-        );
+        
 
         if (yawMotor.getConfigurator().apply(
             new TalonFXConfiguration()
@@ -150,6 +144,7 @@ public final class Launcher extends SubsystemBase {
         setYaw(0);
         setPitch(LauncherConstants.minPitch); // zero at min pitch
         setLaunchMotorConfig(); // separate function to allow for smart dashboard pid tuning
+        setPitchMotorConfig();
         initTrimmer();
     }
 
@@ -164,6 +159,18 @@ public final class Launcher extends SubsystemBase {
                 .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(Amps.of(30)).withPeakReverseTorqueCurrent(Amps.of(-30))));
+    }
+
+    private void setPitchMotorConfig() {
+        pitchMotor.getConfigurator().apply(new TalonFXConfiguration()
+            .withSlot0(new Slot0Configs().withKP(pitchP).withKI(pitchI).withKD(pitchD))
+            .withMotionMagic(new MotionMagicConfigs()
+                .withMotionMagicCruiseVelocity(60000)
+                .withMotionMagicAcceleration(100000)
+                .withMotionMagicJerk(1600000))
+            .withTorqueCurrent(new TorqueCurrentConfigs()
+                .withPeakForwardTorqueCurrent(Amps.of(15)).withPeakReverseTorqueCurrent(Amps.of(-15)))
+        );
     }
 
     /**
@@ -192,15 +199,19 @@ public final class Launcher extends SubsystemBase {
         return pitchMotor.getPosition().getValueAsDouble() * LauncherConstants.pitchGearRatio + LauncherConstants.pitchBounds.getFirst();
     }
 
-    /**
-     * @param degrees desired pitch angle in degrees
-     */
+    
+     private double lastPitchTarget = 0;
+    
     private void setPitch(double degrees) {
+        if (Math.abs(degrees - lastPitchTarget) < 0.1) return; // Ignore tiny changes
+        lastPitchTarget = degrees;
         if (degrees < LauncherConstants.pitchBounds.getFirst() || degrees > LauncherConstants.pitchBounds.getSecond()) {
             System.out.println("Invalid pitch target: " + degrees);
             return;
         }
-        pitchMotor.setControl(new MotionMagicDutyCycle((degrees - LauncherConstants.pitchBounds.getFirst()) / LauncherConstants.pitchGearRatio));
+        
+        //pitchMotor.setControl(new MotionMagicDutyCycle((degrees - LauncherConstants.pitchBounds.getFirst()) / LauncherConstants.pitchGearRatio));
+        pitchMotor.setControl(new MotionMagicDutyCycle((LauncherConstants.pitchBounds.getSecond() - degrees) / LauncherConstants.pitchGearRatio));
     }
     /**
      * 
@@ -243,7 +254,7 @@ public final class Launcher extends SubsystemBase {
         //System.out.println("Active target: (" + activeTarget.getX() + ", " + activeTarget.getY() + " )" );
 
         // 4. Calculate Distance and Radial Velocity
-        Translation2d robotToTarget = projectedPose.getTranslation().minus(activeTarget);
+        Translation2d robotToTarget = activeTarget.minus(projectedPose.getTranslation());
         targetDist = robotToTarget.getNorm();
         Rotation2d angleToTarget = robotToTarget.getAngle();
         //System.out.println("AngleToTarget: " + angleToTarget);
@@ -474,7 +485,7 @@ public final class Launcher extends SubsystemBase {
                 setYaw(yawSetpoint);
             }
         );
-        trimmer.add(
+        /*trimmer.add(
             "Launcher",
             "Pitch +- 1 deg",
             () -> pitchSetpoint,
@@ -482,7 +493,7 @@ public final class Launcher extends SubsystemBase {
                 pitchSetpoint += (up ? 1. : -1.);
                 setPitch(pitchSetpoint);
             }
-        );
+        );*/
         trimmer.add(
             "Launcher",
             "Simple Launch RPM +- 25",
@@ -515,21 +526,21 @@ public final class Launcher extends SubsystemBase {
         );
         trimmer.add(
             "Launcher PID",
-            "Launch P",
-            () -> launchP,
-            (up) -> {launchP = Trimmer.increment(launchP, 0.001, 0.2, up); setLaunchMotorConfig();}
+            "Pitch P",
+            () -> pitchP,
+            (up) -> {pitchP = Trimmer.increment(pitchP, 0.001, 0.2, up); setPitchMotorConfig();}
         );
         trimmer.add(
             "Launcher PID",
-            "Launch D",
-            () -> launchD,
-            (up) -> {launchD = Trimmer.increment(launchD, 0.001, 0.2, up); setLaunchMotorConfig();}
+            "Pitch I",
+            () -> pitchI,
+            (up) -> {pitchI = Trimmer.increment(pitchI, 0.001, 0.2, up); setPitchMotorConfig();}
         );
         trimmer.add(
             "Launcher PID",
-            "Launch I",
-            () -> launchI,
-            (up) -> {launchI = Trimmer.increment(launchI, 0.001, 0.2, up); setLaunchMotorConfig();}
+            "Pitch D",
+            () -> pitchD,
+            (up) -> {pitchD = Trimmer.increment(pitchD, 0.001, 0.2, up); setPitchMotorConfig();}
         );
     }
 }
