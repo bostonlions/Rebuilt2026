@@ -30,15 +30,20 @@ public final class Robot extends TimedRobot {
     private Command m_autonomousCommand;
     private boolean m_wasEnabledInTeleop = false;
     private final boolean useVision = true;
-    /** When true, runs Limelight MegaTag2 and publishes pose to SmartDashboard for Elastic (Field widget). */
+    /** When true, runs Limelight MegaTag2 and publishes vision pose to {@link #LIMELIGHT_FIELD_KEY} (optional debug). */
     private final boolean publishLimelightField = true;
     private final Field2d m_limelightField = new Field2d();
+    /** Fused swerve / pose-estimator robot pose for Elastic Field widget. */
+    private final Field2d m_robotField = new Field2d();
 
-    /** NetworkTables/SmartDashboard name for {@link #m_limelightField}; bind Elastic Field widget to this sendable. */
+    /** Bind Elastic Field widget here for odometry + vision–fused robot pose (recommended). */
+    public static final String ROBOT_FIELD_KEY = "RobotField";
+    /** Optional: Limelight MegaTag2 pose only; use {@link #ROBOT_FIELD_KEY} for the main robot graphic. */
     public static final String LIMELIGHT_FIELD_KEY = "LimelightField";
 
     @Override
     public void robotInit() {
+        SmartDashboard.putData(ROBOT_FIELD_KEY, m_robotField);
         SmartDashboard.putData(LIMELIGHT_FIELD_KEY, m_limelightField);
         m_robotContainer.drivetrain.setLimelightDashboardField(m_limelightField);
     }
@@ -47,6 +52,7 @@ public final class Robot extends TimedRobot {
     public void robotPeriodic() {
         m_robotContainer.drivetrain.setVisionFusionOptions(useVision, publishLimelightField);
         CommandScheduler.getInstance().run();
+        m_robotField.setRobotPose(m_robotContainer.drivetrain.getPose());
     }
 
     @Override
