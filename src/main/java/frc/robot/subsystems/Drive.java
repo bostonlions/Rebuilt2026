@@ -27,7 +27,9 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import choreo.trajectory.SwerveSample;
+import edu.wpi.first.math.MatBuilder;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.Nat;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -45,9 +47,14 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 
+import frc.LimelightHelpers;
+import frc.LimelightHelpers.PoseEstimate;
+import frc.LimelightHelpers.RawFiducial;
 import frc.robot.Robot;
 
 public final class Drive implements Subsystem {
@@ -191,6 +198,7 @@ public final class Drive implements Subsystem {
             if (Utils.isSimulation()) {
                 startSimThread();
             }
+            CommandScheduler.getInstance().registerSubsystem(this);
         }
 
         /**
@@ -300,6 +308,7 @@ public final class Drive implements Subsystem {
                     m_hasAppliedOperatorPerspective = true;
                 });
             }
+            updateMegaTag2Vision();
         }
 
         private void startSimThread() {
@@ -384,6 +393,138 @@ public final class Drive implements Subsystem {
 
         public Pose2d getPose() {
             return this.getState().Pose;
+        }
+
+        // --- MegaTag2 vision fusion (Limelight) ---
+
+        private static final String[] LIMELIGHT_NAMES = {"limelight-a", "limelight-b"};
+        /** Discard vision while spinning faster than this (field-centric yaw rate, deg/s). */
+        private static final double kMaxVisionOmegaDegPerSec = 720.0;
+        /** Reject vision if translation differs from current estimate by more than this (m). */
+        private static final double kVisionOutlierTranslationM = 0.5;
+        /** Reject if any tag has ambiguity above this (Limelight raw fiducial ambiguity). */
+        private static final double kMaxTagAmbiguity = 0.35;
+        /** Trust gyro for heading: very large theta std dev (radians). */
+        private static final double kVisionThetaStdDevRad = 999999.0;
+        /** XY std dev (m): base + scale * avg tag distance (farther tags noisier). */
+        private static final double kVisionXYStdBaseM = 0.12;
+        private static final double kVisionXYStdPerMeter = 0.18;
+
+        private boolean m_visionFusionEnabled = true;
+        private boolean m_publishLimelightField = true;
+        private Field2d m_limelightDashboardField;
+
+        /** Call from {@link frc.robot.Robot#robotInit()} with the Elastic Field widget, if used. */
+        public void setLimelightDashboardField(Field2d field) {
+            m_limelightDashboardField = field;
+        }
+
+        /** Call each loop before {@link CommandScheduler#run()} so the same-cycle fusion uses current flags. */
+        public void setVisionFusionOptions(boolean fusionEnabled, boolean publishLimelightFieldPose) {
+            m_visionFusionEnabled = fusionEnabled;
+            m_publishLimelightField = publishLimelightFieldPose;
+        }
+
+        /**
+         * MegaTag2: seed Limelight with gyro orientation, fuse selected camera pose into the CTRE pose estimator
+         * using per-measurement noise and outlier rejection.
+         */
+        private void updateMegaTag2Vision() {
+            if (!m_visionFusionEnabled && !m_publishLimelightField) {
+                return;
+            }
+
+            double yawDeg = Robot.pigeon.getYaw().getValue().in(Degrees);
+            double yawRateDegPerSec = Robot.pigeon.getAngularVelocityZWorld().getValue().in(DegreesPerSecond);
+            int imuMode = DriverStation.isDisabled() ? 0 : 4;
+
+            for (String name : LIMELIGHT_NAMES) {
+                LimelightHelpers.SetRobotOrientation(name, yawDeg, yawRateDegPerSec, 0, 0, 0, 0);
+                LimelightHelpers.SetIMUMode(name, imuMode);
+            }
+
+            PoseEstimate bpa = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(LIMELIGHT_NAMES[0]);
+            PoseEstimate bpb = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(LIMELIGHT_NAMES[1]);
+            boolean aValid = isValidPoseEstimate(bpa);
+            boolean bValid = isValidPoseEstimate(bpb);
+
+            PoseEstimate best = null;
+            if (aValid && bValid) {
+                best = selectBetterLimelightPose(bpa, bpb);
+            } else if (aValid) {
+                best = bpa;
+            } else if (bValid) {
+                best = bpb;
+            }
+
+            if (best != null && m_publishLimelightField && m_limelightDashboardField != null) {
+                m_limelightDashboardField.setRobotPose(best.pose);
+            }
+
+            if (!m_visionFusionEnabled || best == null) {
+                return;
+            }
+
+            double omegaDegPerSec = Math.abs(Math.toDegrees(getState().Speeds.omegaRadiansPerSecond));
+            if (omegaDegPerSec > kMaxVisionOmegaDegPerSec) {
+                return;
+            }
+
+            if (!fiducialAmbiguityAcceptable(best)) {
+                return;
+            }
+
+            Pose2d current = getPose();
+            double transErr = best.pose.getTranslation().getDistance(current.getTranslation());
+            if (transErr > kVisionOutlierTranslationM) {
+                return;
+            }
+
+            double distM = best.avgTagDist > 0.01 ? best.avgTagDist : minFiducialDistToCamera(best);
+            double xyStdM = kVisionXYStdBaseM + kVisionXYStdPerMeter * distM;
+
+            Pose2d visionForFusion = new Pose2d(best.pose.getTranslation(), current.getRotation());
+            super.addVisionMeasurement(
+                visionForFusion,
+                best.timestampSeconds,
+                MatBuilder.fill(Nat.N3(), Nat.N1(), xyStdM, xyStdM, kVisionThetaStdDevRad));
+        }
+
+        private static boolean isValidPoseEstimate(PoseEstimate p) {
+            return p != null && p.rawFiducials != null && p.rawFiducials.length > 0;
+        }
+
+        private static boolean fiducialAmbiguityAcceptable(PoseEstimate p) {
+            for (RawFiducial f : p.rawFiducials) {
+                if (f.ambiguity > kMaxTagAmbiguity) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static PoseEstimate selectBetterLimelightPose(PoseEstimate a, PoseEstimate b) {
+            int na = tagCountFor(a);
+            int nb = tagCountFor(b);
+            if (na != nb) {
+                return na > nb ? a : b;
+            }
+            double minA = minFiducialDistToCamera(a);
+            double minB = minFiducialDistToCamera(b);
+            return minA <= minB ? a : b;
+        }
+
+        private static int tagCountFor(PoseEstimate p) {
+            if (p.tagCount > 0) return p.tagCount;
+            return p.rawFiducials != null ? p.rawFiducials.length : 0;
+        }
+
+        private static double minFiducialDistToCamera(PoseEstimate p) {
+            double m = Double.POSITIVE_INFINITY;
+            for (RawFiducial f : p.rawFiducials) {
+                if (f.distToCamera < m) m = f.distToCamera;
+            }
+            return m;
         }
 
         
