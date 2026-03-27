@@ -13,6 +13,8 @@ public class LauncherConstants {
         public static final double kTurretLimitPastHoldDeg = 5.0;
         /** Scale on yaw Motion Magic cruise / accel / jerk when the turret must take the long wrap path (80% less → 0.2). */
         public static final double kYawLongPathMotionMagicScale = 0.1;
+        /** End latch (return to full Motion Magic limits) when within this many degrees of the wrapped setpoint. */
+        public static final double kYawLongPathArriveEpsilonDeg = 3.0;
         public static final double kYawMotionMagicCruiseVelocity = 600;
         public static final double kYawMotionMagicAcceleration = 1000;
         public static final double kYawMotionMagicJerk = 10000;
@@ -34,7 +36,7 @@ public class LauncherConstants {
         public static final double kDefaultLaunchD = 0.0;
 
         // --- Motor Duty Cycles ---
-        public static final double kFeederSpinnerMotionDuty = 0.5; // for washing machine speed
+        public static final double kFeederSpinnerMotionDuty = 0.1; // for washing machine speed (can be .5)
         public static final double kFeederSpinnerWithIntakeRequestDuty = 0.1; // for washing machine speed when intaking
         public static final double kFeederRollerMotionDuty = 0.5; // for feeder roller speed
 

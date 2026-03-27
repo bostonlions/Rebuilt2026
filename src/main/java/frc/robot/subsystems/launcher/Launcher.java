@@ -104,6 +104,11 @@ public final class Launcher extends SubsystemBase {
     private boolean forcingDown = false;
     /** Last Motion Magic scale applied to yaw (1.0 = normal, {@link LauncherConstants#kYawLongPathMotionMagicScale} = wrap path). */
     private double m_yawMotionMagicScale = Double.NaN;
+    /**
+     * After commanding a wrap (raw angle outside soft limits), keep scaled Motion Magic until the turret reaches
+     * the wrapped goal so {@code yawTarget} re-entering [min,max] mid-move does not snap back to full cruise/accel.
+     */
+    private boolean m_yawLongPathProfileLatched = false;
 
     public static Launcher getInstance() {
         if (instance == null) instance = new Launcher();
@@ -167,6 +172,7 @@ public final class Launcher extends SubsystemBase {
 
     private void setYawMotorConfig() {
         m_yawMotionMagicScale = Double.NaN;
+        m_yawLongPathProfileLatched = false;
         ensureYawMotionMagicScale(1.0);
     }
 
@@ -244,6 +250,7 @@ public final class Launcher extends SubsystemBase {
         final boolean holdLow = atLowLimit && degrees < min && degrees >= min - pastTol;
 
         if (holdHigh || holdLow) {
+            m_yawLongPathProfileLatched = false;
             ensureYawMotionMagicScale(1.0);
             double holdDeg = MathUtil.clamp(current, min, max);
             double wrappedHold = MathUtil.inputModulus(holdDeg, min, max);
@@ -251,10 +258,18 @@ public final class Launcher extends SubsystemBase {
             return;
         }
 
-        final boolean longWrap = degrees > max || degrees < min;
-        ensureYawMotionMagicScale(longWrap ? LauncherConstants.kYawLongPathMotionMagicScale : 1.0);
-
         double wrapped = MathUtil.inputModulus(degrees, min, max);
+        if (degrees > max || degrees < min) {
+            m_yawLongPathProfileLatched = true;
+        }
+        double errDeg = MathUtil.inputModulus(wrapped - current, -180, 180);
+        if (m_yawLongPathProfileLatched
+            && Math.abs(errDeg) < LauncherConstants.kYawLongPathArriveEpsilonDeg) {
+            m_yawLongPathProfileLatched = false;
+        }
+        ensureYawMotionMagicScale(
+            m_yawLongPathProfileLatched ? LauncherConstants.kYawLongPathMotionMagicScale : 1.0);
+
         yawMotor.setControl(new MotionMagicDutyCycle(-wrapped * LauncherConstants.yawGearRatio / 360.));
     }
 
