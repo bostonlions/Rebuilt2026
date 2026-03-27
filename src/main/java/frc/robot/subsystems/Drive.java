@@ -422,20 +422,20 @@ public final class Drive implements Subsystem {
             return this.getState().Pose;
         }
 
-        public Pose2d getPoseAsIfRed() {
+        public Pose2d getPoseAsIfBlue() {
             Alliance a = DriverStation.getAlliance().orElseThrow(() -> new IllegalArgumentException(
                 "Is this code happening too early and the alliance color isn't available yet?"));
             Pose2d p = getPose();
-            if (a == Alliance.Blue) {
+            if (a == Alliance.Red) {
                 return p.rotateAround(new Translation2d(8.27, 4.035), Rotation2d.k180deg);
             }
             return p;
         }
 
-        public void resetPoseAsIfRed(Pose2d pose) {
+        public void resetPoseAsIfBlue(Pose2d pose) {
             Alliance a = DriverStation.getAlliance().orElseThrow(() -> new IllegalArgumentException(
                 "Is this code happening too early and the alliance color isn't available yet?"));
-            if (a == Alliance.Blue) {
+            if (a == Alliance.Red) {
                 pose = pose.rotateAround(new Translation2d(8.27, 4.035), Rotation2d.k180deg);
             }
             resetPose(pose);
@@ -458,6 +458,8 @@ public final class Drive implements Subsystem {
         private static final Slot0Configs driveGains = new Slot0Configs()
             .withKP(0.1).withKI(0).withKD(0)
             .withKS(0).withKV(0.124);
+
+ 
 
         private static final PIDController xController = new PIDController(2.0, 0.0, 0.0);
         private static final PIDController yController = new PIDController(2.0, 0.0, 0.0);

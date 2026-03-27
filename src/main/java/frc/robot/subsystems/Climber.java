@@ -14,7 +14,10 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 
 import static edu.wpi.first.units.Units.Meters;
 
@@ -136,6 +139,22 @@ public final class Climber extends SubsystemBase {
             lastCommandedDuty = -kOpenLoopDuty;
             elevatorMotor.setControl(new DutyCycleOut(-kOpenLoopDuty));
         }
+    }
+
+    public SequentialCommandGroup elevatorUp() {
+        return new InstantCommand(() -> elevatorMotor.setControl(new DutyCycleOut(kOpenLoopDuty)), this).andThen(
+            new WaitUntilCommand(() -> withinToleranceOfTop(getElevatorCANrangeMeters())).andThen(
+                () -> elevatorMotor.setControl(new DutyCycleOut(0)), this
+            )
+        );
+    }
+
+    public SequentialCommandGroup elevatorDown() {
+        return new InstantCommand(() -> elevatorMotor.setControl(new DutyCycleOut(-kOpenLoopDuty)), this).andThen(
+            new WaitUntilCommand(() -> withinToleranceOfBottom(getElevatorCANrangeMeters())).andThen(
+                () -> elevatorMotor.setControl(new DutyCycleOut(0)), this
+            )
+        );
     }
 
     public void resetZerosAndTargetState() {

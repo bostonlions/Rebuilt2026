@@ -6,18 +6,18 @@ import edu.wpi.first.math.geometry.Translation2d;
 public class LauncherConstants {
         // --- Turret & Yaw Constants ---
         public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-90., 230.); // in degrees, maximum is like -100 - 260 but I make it less bc the wire management was breaking
-        public static final double c11Offset = 0.009; // 11-tooth cancoder value at 0 degrees
-        public static final double c12Offset = 0.007; // 12-tooth cancoder value at 0 degrees
+        public static final double c11Offset = 0.113; // 11-tooth cancoder value at 0 degrees
+        public static final double c12Offset = 0.107; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
         /** When near a soft limit, allow this much past the limit without re-homing via wrap (hold position). */
         public static final double kTurretLimitPastHoldDeg = 5.0;
         /** Scale on yaw Motion Magic cruise / accel / jerk when the turret must take the long wrap path (80% less → 0.2). */
-        public static final double kYawLongPathMotionMagicScale = 0.1;
+        public static final double kYawLongPathMotionMagicScale = 0.90;
         /** End latch (return to full Motion Magic limits) when within this many degrees of the wrapped setpoint. */
         public static final double kYawLongPathArriveEpsilonDeg = 3.0;
-        public static final double kYawMotionMagicCruiseVelocity = 600;
-        public static final double kYawMotionMagicAcceleration = 500;
-        public static final double kYawMotionMagicJerk = 10000;
+        public static final double kYawMotionMagicCruiseVelocity = 50; // was 600
+        public static final double kYawMotionMagicAcceleration = 100; // TODO: check this. 500 works
+        public static final double kYawMotionMagicJerk = 1000; // 10000 works
 
         // --- Pitch (Hood) Constants ---
         private static final double minHoodAngle = 20.0; // hood angle relative to horizontal
@@ -47,7 +47,7 @@ public class LauncherConstants {
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0; // (deg) to offset pitch if shooting based on distance is missing
-        public static final double kRPMScaleFactor = .85; // (m/s) scale to offset velocity if shooting based on distance is missing
+        public static final double kRPMScaleFactor = .80; // (m/s) scale to offset velocity if shooting based on distance is missing
         public static final double projectionTime = 0.1; // seconds into the future to predict position
         public static final double kRPMTolerance = 0.05; // tolerance when checking flywheel speed is within range
         public static final double maxYawAdjustment = 10; // degrees to adjust yaw to compensate tangential velocity

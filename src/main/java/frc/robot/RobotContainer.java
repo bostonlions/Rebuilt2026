@@ -51,8 +51,8 @@ public final class RobotContainer {
         zeroGyro();
         drivetrain.setDefaultCommand( // X is defined as forward according to WPILib convention, and Y is defined as to the left
             drivetrain.applyRequest(() -> // origin is right corner of blue alliance driver station
-                SwerveConstants.drive.withVelocityX(controller.getSwerveTranslation().getX() * (DriverStation.getAlliance().get() == Alliance.Blue ? 1 : -1))
-                    .withVelocityY(controller.getSwerveTranslation().getY() * (DriverStation.getAlliance().get() == Alliance.Blue ? 1 : -1))
+                SwerveConstants.drive.withVelocityX(controller.getSwerveTranslation().getX() * (DriverStation.getAlliance().get() == Alliance.Blue ? -1 : -1))
+                    .withVelocityY(controller.getSwerveTranslation().getY() * (DriverStation.getAlliance().get() == Alliance.Blue ? -1 : -1))
                     .withRotationalRate(controller.getSwerveRotation())
             )
         );
@@ -112,21 +112,17 @@ public final class RobotContainer {
                 }
             }));
 
-
-
         climber = Climber.getInstance();
         SmartDashboard.putData(climber);
         // Elevator is open-loop from operator left stick Y in Robot.teleopPeriodic (Climber.driveFromStick).
 
         autoFactory = new AutoFactory(
-            drivetrain::getPoseAsIfRed, // A function that returns the current robot pose
-            drivetrain::resetPoseAsIfRed, // A function that resets the current robot pose to the provided Pose2d
+            drivetrain::getPose, // A function that returns the current robot pose
+            drivetrain::resetPose, // A function that resets the current robot pose to the provided Pose2d
             drivetrain::followTrajectory, // The drive subsystem trajectory follower
             false, // If alliance flipping should be enabled
             drivetrain // The drive subsystem
         );
-
-
 
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
@@ -227,7 +223,7 @@ public final class RobotContainer {
                 // Apply additional slowdown if the launcher is preparing to shoot
                 if (Launcher.getInstance().isAimingOrShooting()) {
                     // Adjust this 0.3 (30% speed) value to whatever feels best
-                    driveScale *= 0.3; // TODO: CHANGE to whatever speed you want while shooting
+                    // driveScale *= 0.3; // TODO: CHANGE to whatever speed you want while shooting
                 }
 
                 return new Translation2d(scaled_x, scaled_y).times(SwerveConstants.kSpeedAt12Volts

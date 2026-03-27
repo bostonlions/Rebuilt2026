@@ -11,10 +11,11 @@ import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
-
+import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Trimmer;
 import frc.robot.subsystems.launcher.Launcher;
@@ -22,59 +23,52 @@ import frc.robot.subsystems.launcher.Launcher;
 public final class Auton extends SubsystemBase {
     private static Auton instance = null;
     private static final Launcher launcher = Launcher.getInstance();
+    private static final Climber climber = Climber.getInstance();
     private static final Intake intake = Intake.getInstance();
-    private static AutoFactory autoFactory = RobotContainer.autoFactory;
+    private static final AutoFactory autoFactory = RobotContainer.autoFactory;
     private static final Map<String, Command> commands = Map.ofEntries(
         entry("0: None", new PrintCommand("Autonomous started with no command chosen")),
         entry("1: Shoot from left corner of hub", Commands.sequence(
-            new InstantCommand(() -> launcher.simpleToggle(1475, 15, -45)),
+            new InstantCommand(() -> launcher.simpleToggle(1475, 90-15, -45)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
         )),
         entry("2: Shoot from right corner of hub", Commands.sequence(
-            new InstantCommand(() -> launcher.simpleToggle(1475, 15, 45)),
+            new InstantCommand(() -> launcher.simpleToggle(1475, 90-15, 45)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
         )),
-        entry("DriveForwardNow", Commands.sequence(
-            autoFactory.resetOdometry("FirstTest"),
-            autoFactory.trajectoryCmd("FirstTest")
-        ))
-        
-        // entry("3: Shoot from far left", Commands.sequence(
-        //     // Shoot for 10 sec, low speed and high angle, then turn off
-        //     new InstantCommand(() -> launcher.simpleToggle(1800, 25, -80)),
-        //     sleep(10),
-        //     new InstantCommand(() -> launcher.simpleToggle())
-        // )),
-        // entry("4: Shoot from far right", Commands.sequence(
-        //     // Shoot for 10 sec, low speed and high angle, then turn off
-        //     new InstantCommand(() -> launcher.simpleToggle(1800, 25, 80)),
-        //     sleep(10),
-        //     new InstantCommand(() -> launcher.simpleToggle())
-        // )),
-        // entry("3: Shoot straight default", Commands.sequence(
-        //     // Shoot for 10 sec, default speed and angle, then turn off
-        //     new InstantCommand(() -> launcher.simpleToggle()),
-        //     sleep(10),
-        //     new InstantCommand(() -> launcher.simpleToggle())
-        // ))
-        // entry("4: Shoot and climb: left hub corner", Commands.sequence(
-        //     new InstantCommand(() -> launcher.simpleToggle(1475, 15, -45)),
-        //     sleep(8),
-        //     new InstantCommand(() -> launcher.simpleToggle())
-        //     // parallel: drive to 1 foot in front of tower, while prepping to climb
-        //     // then slowly drive forward too far (2 feet?) so we know we hit the tower
-        //     // then climb
-        // )),
-        // entry("5: Shoot and climb: right hub corner", Commands.sequence(
-        //     new InstantCommand(() -> launcher.simpleToggle(1475, 15, 45)),
-        //     sleep(8),
-        //     new InstantCommand(() -> launcher.simpleToggle())
-        // ))
+        entry("3: Test path", Commands.sequence(
+            
+            followPathCommand("Testing")
+        )),
+        entry("4: Climb From Right", Commands.sequence(
+            new InstantCommand(() -> launcher.simpleToggle(1475, 90-15, 45)),
+            sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
+            new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
+            new InstantCommand(() -> launcher.simpleToggle()),
+            followPathCommand("ClimbFromRightSetup"),
+            climber.elevatorUp(),
+            followPathCommand("ClimbFromRightDriveIn"),
+            climber.elevatorDown()
+        )),
+        entry("5: Mid and Back", new ParallelCommandGroup(
+            followPathCommand("GoToMidAndBack"),
+            new WaitCommand(1).andThen(
+                new InstantCommand(() -> intake.setExtension(true), intake),
+                new InstantCommand(() -> intake.toggleSpin(), intake),
+                new WaitCommand(2),
+                new InstantCommand(() -> intake.toggleSpin(), intake),
+                new InstantCommand(() -> intake.setExtension(false), intake)
+            )
+        ).andThen(() -> launcher.setMode(Launcher.Mode.FIRE), launcher))
     );
+
+    private static Command followPathCommand(String path) {
+        return autoFactory.resetOdometry(path).andThen(autoFactory.trajectoryCmd(path));
+    }
     
     public static Auton getInstance() {
         if (instance == null) instance = new Auton();
@@ -91,7 +85,6 @@ public final class Auton extends SubsystemBase {
         Arrays.sort(commandNames);
         allCommands = String.join("\n", commandNames);
         initTrimmer();
-        Auton.autoFactory = autoFactory;
     }
 
     private static Command sleep(double secs) {

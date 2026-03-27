@@ -58,7 +58,7 @@ public final class Launcher extends SubsystemBase {
     private Translation3d shootTarget = null; 
     private Translation2d hurlTargetXZ = null; 
     private static Launcher instance = null;
-    private Translation3d shotVector = null;
+    // private Translation3d shotVector = null;
 
     private final StaticBrake brake = new StaticBrake();
     private final DutyCycleOut feederSpinnerMotionRequest = new DutyCycleOut(LauncherConstants.kFeederSpinnerMotionDuty);
@@ -66,7 +66,7 @@ public final class Launcher extends SubsystemBase {
     private final DutyCycleOut feederRollerMotionRequest = new DutyCycleOut(LauncherConstants.kFeederRollerMotionDuty);
 
     private double launchP = LauncherConstants.kDefaultLaunchP;
-    private double launchD = LauncherConstants.kDefaultLaunchD;
+    // private double launchD = LauncherConstants.kDefaultLaunchD;
     private double launchI = LauncherConstants.kDefaultLaunchI;
 
     private double yawP = LauncherConstants.kDefaultYawP;
@@ -122,19 +122,17 @@ public final class Launcher extends SubsystemBase {
         feeder_spinner.getConfigurator().apply(feederMotorConfig);
         feeder_roller.getConfigurator().apply(feederMotorConfig);
 
-        // Don't configure can coder offsets here; enter offsets into c11 and c12 offset constants above
+        // Don't configure can coder offsets here; enter offsets into c11 and c12 offset constants
         yaw12cancoder.getConfigurator().apply(new MagnetSensorConfigs().withMagnetOffset(0).withAbsoluteSensorDiscontinuityPoint(1));
         yaw11cancoder.getConfigurator().apply(new MagnetSensorConfigs().withMagnetOffset(0).withAbsoluteSensorDiscontinuityPoint(1));
 
         DriverStation.getAlliance().ifPresentOrElse((color) -> {
             shootTarget = new Translation3d(color == Alliance.Blue ? 4.625594 : 11.915394, 4.034536, 1.8288);
-            hurlTargetXZ = new Translation2d(color == Alliance.Blue ? 3.048 : 13.492988, 1.016); //TODO: Set this
+            hurlTargetXZ = new Translation2d(color == Alliance.Blue ? 3.048 : 13.492988, 1.016);
             blueAlliance = color == Alliance.Blue;
         }, () -> {
             throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
         });
-
-        
 
         yaw11cancoder.getAbsolutePosition().waitForUpdate(0.25);
         yaw12cancoder.getAbsolutePosition().waitForUpdate(0.25);
@@ -329,8 +327,6 @@ public final class Launcher extends SubsystemBase {
         hurling = blueAlliance ? 
             (projectedPose.getX() > 4.625594 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192)) : //TODO: CHECK
             (projectedPose.getX() < 11.915394 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192));
-
-        System.out.println(hurling);
             
         Translation2d activeTarget = hurling ? 
             new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) : 
@@ -394,7 +390,6 @@ public final class Launcher extends SubsystemBase {
     public void simpleToggle(double launchSpeedRpm, double pitchDegrees) {
         simpleToggle(launchSpeedRpm, pitchDegrees, 0.0);
     }
-
 
     /* A yaw of NaN indicates that actually we will use dynamic yaw for hurling */
     public void simpleToggle(double launchSpeedRpm, double pitchDegrees, double yawDegrees) {

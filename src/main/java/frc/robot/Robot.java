@@ -6,7 +6,7 @@ package frc.robot;
 
 import frc.LimelightHelpers;
 import frc.robot.subsystems.launcher.Launcher;
-import edu.wpi.first.math.geometry.Pose2d;
+
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -30,9 +30,9 @@ public final class Robot extends TimedRobot {
     private Command m_autonomousCommand;
     private boolean m_wasEnabledInTeleop = false;
     
-    private final boolean useVision = true;
-    /** When true, runs Limelight MegaTag2 and publishes pose to SmartDashboard for Elastic (Field widget). */
-    private final boolean publishLimelightField = true;
+    // private final boolean useVision = true;
+    // // When true, runs Limelight MegaTag2 and publishes pose to SmartDashboard for Elastic (Field widget)
+    // private final boolean publishLimelightField = true;
     private final Field2d m_limelightField = new Field2d();
 
     /** NetworkTables/SmartDashboard name for {@link #m_limelightField}; bind Elastic Field widget to this sendable. */
@@ -47,8 +47,8 @@ public final class Robot extends TimedRobot {
     public void robotPeriodic() {
         CommandScheduler.getInstance().run();
 
-        Pose2d currentPose = m_robotContainer.drivetrain.getPose();
-        //System.out.println("" + currentPose.getX()+ ", " + currentPose.getY());
+        // Pose2d currentPose = m_robotContainer.drivetrain.getPose();
+        // System.out.println("" + currentPose.getX()+ ", " + currentPose.getY());
 
         /*if (useVision && aValid && bValid) {
             System.out.print("dx: " + Math.abs(bpa.pose.getX() - bpb.pose.getX()));
