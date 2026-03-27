@@ -16,7 +16,7 @@ public class LauncherConstants {
         /** End latch (return to full Motion Magic limits) when within this many degrees of the wrapped setpoint. */
         public static final double kYawLongPathArriveEpsilonDeg = 3.0;
         public static final double kYawMotionMagicCruiseVelocity = 600;
-        public static final double kYawMotionMagicAcceleration = 1000;
+        public static final double kYawMotionMagicAcceleration = 500;
         public static final double kYawMotionMagicJerk = 10000;
 
         // --- Pitch (Hood) Constants ---
@@ -34,6 +34,11 @@ public class LauncherConstants {
         public static final double kDefaultLaunchP = 0.04;
         public static final double kDefaultLaunchI = 0.0;
         public static final double kDefaultLaunchD = 0.0;
+
+        public static final double kDefaultYawP = 0.4;
+        public static final double kDefaultYawI = 0.00;
+        public static final double kDefaultYawD = 0.022;
+
 
         // --- Motor Duty Cycles ---
         public static final double kFeederSpinnerMotionDuty = 0.5; // for washing machine speed (can be .5)

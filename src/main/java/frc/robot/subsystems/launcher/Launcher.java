@@ -69,8 +69,11 @@ public final class Launcher extends SubsystemBase {
     private double launchD = LauncherConstants.kDefaultLaunchD;
     private double launchI = LauncherConstants.kDefaultLaunchI;
 
+    private double yawP = LauncherConstants.kDefaultYawP;
+    private double yawI = LauncherConstants.kDefaultYawI;
+    private double yawD = LauncherConstants.kDefaultYawI;
+
     private double pitchP = 0.1, pitchI = 0.0, pitchD = 0.0;
-    private double yawP = 0.1, yawI = 0.0, yawD = 0.0;
 
     private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBusJustice);
     private final TalonFX pitchMotor = new TalonFX(Ports.PITCH_MOTOR, kCANBusJustice);
@@ -133,7 +136,8 @@ public final class Launcher extends SubsystemBase {
 
         
 
-        
+        yaw11cancoder.getAbsolutePosition().waitForUpdate(0.25);
+        yaw12cancoder.getAbsolutePosition().waitForUpdate(0.25);
         yawMotor.setPosition(-calcYawDegrees() * LauncherConstants.yawGearRatio / 360.);
 
         forcePitchDown();
@@ -235,46 +239,67 @@ public final class Launcher extends SubsystemBase {
     /**
      * @param degrees desired turret yaw in degrees (robot-relative), same convention as {@link MathUtil#inputModulus}.
      */
-    private void setYaw(double degrees) {
-        // This does not swing around to the far side unless the angle we are aiming for 
-        // is more than 5deg larger (prevent violent swinging near limits)
-        // When a swing does occur we lower the speed so that it does not violently swing around
-        if (degrees<0){
-            degrees = degrees + 360;
-        }
-        final double min = LauncherConstants.yawBounds.getFirst();
-        final double max = LauncherConstants.yawBounds.getSecond();
-        final double pastTol = LauncherConstants.kTurretLimitPastHoldDeg;
-        final double current = calcYawDegrees();
+    private void setYaw(double rawDegrees) {
+    final double min = LauncherConstants.yawBounds.getFirst(); // e.g., -90
+    final double max = LauncherConstants.yawBounds.getSecond(); // e.g., 230
+    final double pastTol = LauncherConstants.kTurretLimitPastHoldDeg;
+    final double current = calcYawDegrees();
 
-        final boolean atHighLimit = current >= max - pastTol;
-        final boolean atLowLimit = current <= min + pastTol;
-        final boolean holdHigh = atHighLimit && degrees > max && degrees <= max + pastTol;
-        final boolean holdLow = atLowLimit && degrees < min && degrees >= min - pastTol;
+    // 1. Calculate the shortest physical path safely
+    double error = MathUtil.inputModulus(rawDegrees - current, -180.0, 180.0);
+    double target = current + error;
 
-        if (holdHigh || holdLow) {
-            m_yawLongPathProfileLatched = false;
-            ensureYawMotionMagicScale(1.0);
-            double holdDeg = MathUtil.clamp(current, min, max);
-            double wrappedHold = MathUtil.inputModulus(holdDeg, min, max);
-            yawMotor.setControl(new MotionMagicDutyCycle(-wrappedHold * LauncherConstants.yawGearRatio / 360.));
-            return;
-        }
-
-        double wrapped = MathUtil.inputModulus(degrees, min, max);
-        if (degrees > max || degrees < min) {
+    // 2. Wrap-around logic & Latching (Replaces your `if (degrees > max...)`)
+    // If the shortest path hits a limit, swing the long way around and latch the profile
+    if (target > max) {
+        if (target - 360.0 >= min) {
+            target -= 360.0;
             m_yawLongPathProfileLatched = true;
         }
-        double errDeg = MathUtil.inputModulus(wrapped - current, -180, 180);
-        if (m_yawLongPathProfileLatched
-            && Math.abs(errDeg) < LauncherConstants.kYawLongPathArriveEpsilonDeg) {
-            m_yawLongPathProfileLatched = false;
+    } else if (target < min) {
+        if (target + 360.0 <= max) {
+            target += 360.0;
+            m_yawLongPathProfileLatched = true;
         }
-        ensureYawMotionMagicScale(
-            m_yawLongPathProfileLatched ? LauncherConstants.kYawLongPathMotionMagicScale : 1.0);
-
-        yawMotor.setControl(new MotionMagicDutyCycle(-wrapped * LauncherConstants.yawGearRatio / 360.));
     }
+
+    // 3. Limit Holding Logic (Directly from your snippet, but using 'target')
+    final boolean atHighLimit = current >= max - pastTol;
+    final boolean atLowLimit = current <= min + pastTol;
+    
+    final boolean holdHigh = atHighLimit && target > max && target <= max + pastTol;
+    final boolean holdLow = atLowLimit && target < min && target >= min - pastTol;
+
+    if (holdHigh || holdLow) {
+        m_yawLongPathProfileLatched = false;
+        ensureYawMotionMagicScale(1.0);
+        
+        // CRITICAL FIX: We clamp, but DO NOT use inputModulus here!
+        double holdDeg = MathUtil.clamp(current, min, max);
+        yawMotor.setControl(new MotionMagicDutyCycle(-holdDeg * LauncherConstants.yawGearRatio / 360.0));
+        return;
+    }
+
+    // 4. Final safety clamp in case the target is mathematically impossible
+    target = MathUtil.clamp(target, min, max);
+
+    // 5. Arrival check to unlatch the profile
+    // CRITICAL FIX: Use linear distance (target - current), not circular modulus!
+    // If you use modulus here, it unlatches halfway through a 360-degree swing.
+    double errDeg = target - current; 
+    
+    if (m_yawLongPathProfileLatched && Math.abs(errDeg) < LauncherConstants.kYawLongPathArriveEpsilonDeg) {
+        m_yawLongPathProfileLatched = false;
+    }
+
+    // 6. Apply your Motion Magic Scale
+    ensureYawMotionMagicScale(
+        m_yawLongPathProfileLatched ? LauncherConstants.kYawLongPathMotionMagicScale : 1.0
+    );
+
+    // 7. Command the motor
+    yawMotor.setControl(new MotionMagicDutyCycle(-target * LauncherConstants.yawGearRatio / 360.0));
+}
 
     /**
      * Calculates targeting variables using WPILib Geometry and queries the Polynomial Surface.
@@ -608,7 +633,7 @@ public final class Launcher extends SubsystemBase {
         );
         trimmer.add(
             "Launcher PID",
-            "Launch I",
+            "Yaw I",
             () -> yawI,
             (up) -> {yawI = Trimmer.increment(yawI, 0.001, 0.2, up); setYawMotorConfig();}
         );
