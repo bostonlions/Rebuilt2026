@@ -43,7 +43,7 @@ public final class RobotContainer {
     // private boolean feederRollerTestEnabled = false;
 
     private void zeroGyro() {
-        drivetrain.resetRotation(new Rotation2d(DriverStation.getAlliance().get() == Alliance.Blue ? Math.PI : 0));
+        drivetrain.resetRotation(new Rotation2d(DriverStation.getAlliance().get() == Alliance.Blue ? 0 : Math.PI));
     }
 
     public RobotContainer() {
@@ -51,8 +51,8 @@ public final class RobotContainer {
         zeroGyro();
         drivetrain.setDefaultCommand( // X is defined as forward according to WPILib convention, and Y is defined as to the left
             drivetrain.applyRequest(() -> // origin is right corner of blue alliance driver station
-                SwerveConstants.drive.withVelocityX(controller.getSwerveTranslation().getX())
-                    .withVelocityY(controller.getSwerveTranslation().getY())
+                SwerveConstants.drive.withVelocityX(controller.getSwerveTranslation().getX() * (DriverStation.getAlliance().get() == Alliance.Blue ? 1 : -1))
+                    .withVelocityY(controller.getSwerveTranslation().getY() * (DriverStation.getAlliance().get() == Alliance.Blue ? 1 : -1))
                     .withRotationalRate(controller.getSwerveRotation())
             )
         );

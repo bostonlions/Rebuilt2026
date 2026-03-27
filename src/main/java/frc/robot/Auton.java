@@ -92,7 +92,6 @@ public final class Auton extends SubsystemBase {
         allCommands = String.join("\n", commandNames);
         initTrimmer();
         Auton.autoFactory = autoFactory;
-
     }
 
     private static Command sleep(double secs) {

@@ -19,9 +19,15 @@ public class ShooterKinematics {
         return lib.Util.clamp(calculatePoly33(distance, radialVelo, LauncherConstants.HOOD_COEFFS) + LauncherConstants.kPitchOffset, LauncherConstants.minPitch, LauncherConstants.maxPitch);
     }
 
-    public double getTargetFlywheelRPM(double distance, double radialVelo) {
-        double exitVeloMetersPerSec = calculatePoly33(distance, radialVelo, LauncherConstants.VELO_COEFFS);
+    public double getExitVeloMetersPerSec(double distance, double radialVelo) {
+        return calculatePoly33(distance, radialVelo, LauncherConstants.VELO_COEFFS);
+    }
 
+    // public double getTargetFlywheelRPM(double distance, double radialVelo) {
+    //     return getTargetFlywheelRPM(getExitVeloMetersPerSec(distance, radialVelo));
+    // }
+
+    public double getTargetFlywheelRPM(double exitVeloMetersPerSec) {
         // 1. Convert Ball Exit Velo to Wheel Surface Speed (V_wheel = 2 * V_ball)
         double wheelSurfaceVelo = exitVeloMetersPerSec * 2.0;
 

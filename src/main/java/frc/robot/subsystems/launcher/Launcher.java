@@ -23,7 +23,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -39,7 +38,6 @@ import frc.robot.Robot.Ports;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Trimmer;
-import frc.robot.subsystems.Drive.Drivetrain;
 
 import static frc.robot.Robot.kCANBusJustice;
 
@@ -53,7 +51,7 @@ public final class Launcher extends SubsystemBase {
     private final ShooterKinematics kinematics = new ShooterKinematics();
 
     // Diagnostics & Telemetry
-    private double targetDist, targetRadialVelo, targetRPM, adjustedRPM, pitchTarget, yawTarget;
+    private double targetDist, targetRadialVelo, targetTangentialVelo, targetRPM, adjustedRPM, pitchTarget, yawTarget;
     private boolean blueAlliance, hurling, shooterSpeedReady, nearTrench;
     private double yawMinTorque=0, yawMaxTorque=0, pitchMinTorque=0, pitchMaxTorque=0;
 
@@ -71,6 +69,7 @@ public final class Launcher extends SubsystemBase {
     private double launchI = LauncherConstants.kDefaultLaunchI;
 
     private double pitchP = 0.1, pitchI = 0.0, pitchD = 0.0;
+    private double yawP = 0.1, yawI = 0.0, yawD = 0.0;
 
     private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBusJustice);
     private final TalonFX pitchMotor = new TalonFX(Ports.PITCH_MOTOR, kCANBusJustice);
@@ -126,25 +125,15 @@ public final class Launcher extends SubsystemBase {
 
         
 
-        if (yawMotor.getConfigurator().apply(
-            new TalonFXConfiguration()
-            .withSlot0(new Slot0Configs().withKP(0.1).withKI(0.2))
-            .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(60)
-                .withMotionMagicAcceleration(100)
-                .withMotionMagicJerk(1000))
-            .withTorqueCurrent(new TorqueCurrentConfigs()
-                .withPeakForwardTorqueCurrent(Amps.of(40)).withPeakReverseTorqueCurrent(Amps.of(-40)))
-        ).isOK()) {
-            yawMotor.setPosition(-calcYawDegrees() * LauncherConstants.yawGearRatio / 360.);
-        }
-        else DriverStation.reportError("Yaw motor config apply failed so the motor couldn't be zeroed", true);
+        
+        yawMotor.setPosition(-calcYawDegrees() * LauncherConstants.yawGearRatio / 360.);
 
         forcePitchDown();
         setYaw(0);
-        setPitch(LauncherConstants.minPitch); // zero at min pitch
+        setPitch(LauncherConstants.pitchBounds.getSecond()); // zero at min pitch
         setLaunchMotorConfig(); // separate function to allow for smart dashboard pid tuning
         setPitchMotorConfig();
+        setYawMotorConfig();
         initTrimmer();
     }
 
@@ -165,11 +154,24 @@ public final class Launcher extends SubsystemBase {
         pitchMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withSlot0(new Slot0Configs().withKP(pitchP).withKI(pitchI).withKD(pitchD))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(60000)
-                .withMotionMagicAcceleration(100000)
-                .withMotionMagicJerk(1600000))
+                .withMotionMagicCruiseVelocity(6000)
+                .withMotionMagicAcceleration(1000)
+                .withMotionMagicJerk(16000))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(Amps.of(15)).withPeakReverseTorqueCurrent(Amps.of(-15)))
+        );
+    }
+
+    private void setYawMotorConfig() {
+        yawMotor.getConfigurator().apply(
+            new TalonFXConfiguration()
+            .withSlot0(new Slot0Configs().withKP(yawP).withKI(yawI).withKD(yawD))
+            .withMotionMagic(new MotionMagicConfigs()
+                .withMotionMagicCruiseVelocity(600)
+                .withMotionMagicAcceleration(1000)
+                .withMotionMagicJerk(10000))
+            .withTorqueCurrent(new TorqueCurrentConfigs()
+                .withPeakForwardTorqueCurrent(Amps.of(40)).withPeakReverseTorqueCurrent(Amps.of(-40)))
         );
     }
 
@@ -200,11 +202,9 @@ public final class Launcher extends SubsystemBase {
     }
 
     
-     private double lastPitchTarget = 0;
     
     private void setPitch(double degrees) {
-        if (Math.abs(degrees - lastPitchTarget) < 0.1) return; // Ignore tiny changes
-        lastPitchTarget = degrees;
+        System.out.println("SetPitch: " + degrees);
         if (degrees < LauncherConstants.pitchBounds.getFirst() || degrees > LauncherConstants.pitchBounds.getSecond()) {
             System.out.println("Invalid pitch target: " + degrees);
             return;
@@ -234,12 +234,15 @@ public final class Launcher extends SubsystemBase {
         double robotYaw = currentPose.getRotation().getRadians();
         double fieldVx = rvx * Math.cos(robotYaw) - rvy * Math.sin(robotYaw);
         double fieldVy = rvx * Math.sin(robotYaw) + rvy * Math.cos(robotYaw);
+        double finalRobotYaw = robotYaw + state.Speeds.omegaRadiansPerSecond * LauncherConstants.projectionTime;
+        double tx = LauncherConstants.turretPosRobotRel.getX();
+        double ty = LauncherConstants.turretPosRobotRel.getY();
 
         // 2. Project pose slightly into the future based on velocity
         Pose2d projectedPose = new Pose2d(
-            currentPose.getX() + fieldVx * LauncherConstants.projectionTime,
-            currentPose.getY() + fieldVy * LauncherConstants.projectionTime,
-            new Rotation2d(robotYaw + state.Speeds.omegaRadiansPerSecond * LauncherConstants.projectionTime)
+            currentPose.getX() + fieldVx * LauncherConstants.projectionTime + tx * Math.cos(finalRobotYaw) - ty * Math.sin(finalRobotYaw),
+            currentPose.getY() + fieldVy * LauncherConstants.projectionTime + tx * Math.sin(finalRobotYaw) + ty * Math.cos(finalRobotYaw),
+            new Rotation2d(finalRobotYaw)
         );
 
         // 3. Determine Active Target (Hub vs Hurling)
@@ -261,13 +264,19 @@ public final class Launcher extends SubsystemBase {
 
         // Dot product of field velocity and the unit vector pointing at the target
         targetRadialVelo = (fieldVx * angleToTarget.getCos()) + (fieldVy * angleToTarget.getSin());
+        targetTangentialVelo = (fieldVy * angleToTarget.getCos()) - (fieldVx * angleToTarget.getSin());
 
         // 5. Query the Polynomial Fit
-        targetRPM = kinematics.getTargetFlywheelRPM(targetDist, targetRadialVelo);
+        double exitVeloMetersPerSec = kinematics.getExitVeloMetersPerSec(targetDist, targetRadialVelo);
+        targetRPM = kinematics.getTargetFlywheelRPM(exitVeloMetersPerSec);
         pitchTarget = kinematics.getTargetHoodAngle(targetDist, targetRadialVelo);
         
         // 6. Calculate Yaw Target (Angle to target minus projected robot heading)
         yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees();
+
+        // 6b. Adjust Yaw Target for tangential velocity
+        double yawAdjustment = MathUtil.clamp(-targetTangentialVelo / exitVeloMetersPerSec / Math.cos(pitchTarget * Math.PI / 180) * 180 / Math.PI, -LauncherConstants.maxYawAdjustment, LauncherConstants.maxYawAdjustment);
+        yawTarget += yawAdjustment;
 
         // 7. Apply Safeties and Send to Motors
         nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61) || MathUtil.isNear(11.915394, currentPose.getX(), 0.61); //TODO: CHECK
@@ -275,18 +284,19 @@ public final class Launcher extends SubsystemBase {
         // 8. Compensate for RPM drop when the ball is launched
         adjustedRPM = kinematics.getAdjustedFlywheelRPM(targetRPM);
 
-        System.out.println("AdjustedRPM" + adjustedRPM);
 
         launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60.0));
         setYaw(yawTarget);
         
         double currentRPM = launchMotor.getVelocity().getValueAsDouble() * 60.0;
-        shooterSpeedReady = targetRPM > 0 && Math.abs(currentRPM - targetRPM) < (targetRPM * LauncherConstants.kRPMTolerance); // Within 5% tolerance
+        shooterSpeedReady = targetRPM > 0 && Math.abs(currentRPM - targetRPM) < (targetRPM * LauncherConstants.kRPMTolerance);
 
-        if (nearTrench || !shooterSpeedReady) {
-            setPitch(LauncherConstants.pitchBounds.getFirst());
+        if (nearTrench) {
+            System.out.println("Place1");
+            setPitch(LauncherConstants.pitchBounds.getSecond());
             // if (mode == Mode.FIRE) setMode(Mode.STANDBY); 
         } else {
+            System.out.println("Place 2 (should be setting to target)");
             setPitch(pitchTarget);
         }
     }
@@ -315,7 +325,10 @@ public final class Launcher extends SubsystemBase {
             double targetRps = launchSpeedRpm / 60.0; // rotations per second
             launchMotor.setControl(new MotionMagicVelocityDutyCycle(targetRps));
             dynamicYaw = Double.isNaN(yawDegrees);
-            if (!dynamicYaw) setYaw(yawDegrees);
+            if (!dynamicYaw) {
+                System.out.println("from simpletoggle");
+                setYaw(yawDegrees);
+            }
             setPitch(pitchDegrees);
             CommandScheduler.getInstance().schedule(
                 // Wait until either launcher is at speed (within tolerance) OR 3 seconds have passed,
@@ -352,12 +365,17 @@ public final class Launcher extends SubsystemBase {
         if (newMode == Mode.OFF) {
             launchMotor.setControl(brake);
             setYaw(0);
-            setPitch(LauncherConstants.pitchBounds.getFirst());
+            System.out.println("From SetMode");
+            setPitch(LauncherConstants.pitchBounds.getSecond());
             setFeeder(false); // Make sure feeder is off
+            shooterSpeedReady = false;
         }
         else {
             if (mode == Mode.OFF){
                 prepToShoot();
+            }
+            else {
+                shooterSpeedReady = false;
             }
             // setFeeder(newMode == Mode.FIRE);
         }
@@ -407,7 +425,8 @@ public final class Launcher extends SubsystemBase {
             System.out.println("Pitch bottom limit hit, marking min pitch");
             pitchMotor.setPosition(LauncherConstants.pitchLimitRotations);
             forcingDown = false;
-            setPitch(LauncherConstants.pitchBounds.getFirst());
+            System.out.println("Setting from force down");
+            setPitch(LauncherConstants.pitchBounds.getSecond());
         }
 
         if (toggledOn && dynamicYaw)
@@ -430,6 +449,7 @@ public final class Launcher extends SubsystemBase {
         // New Kinematics Telemetry
         builder.addDoubleProperty("Target Distance (m)", () -> targetDist, null);
         builder.addDoubleProperty("Target Radial Velo (m/s)", () -> targetRadialVelo, null);
+        builder.addDoubleProperty("Target Tangential Velo (m/s)", () -> targetTangentialVelo, null);
         builder.addDoubleProperty("Polynomial Target RPM", () -> targetRPM, null);
         builder.addDoubleProperty("Polynomial Target Pitch", () -> pitchTarget, null);
         builder.addDoubleProperty("Yaw Target", () -> yawTarget, null);
@@ -526,21 +546,21 @@ public final class Launcher extends SubsystemBase {
         );
         trimmer.add(
             "Launcher PID",
-            "Pitch P",
-            () -> pitchP,
-            (up) -> {pitchP = Trimmer.increment(pitchP, 0.001, 0.2, up); setPitchMotorConfig();}
+            "Yaw P",
+            () -> yawP,
+            (up) -> {yawP = Trimmer.increment(yawP, 0.001, 0.2, up); setYawMotorConfig();}
         );
         trimmer.add(
             "Launcher PID",
-            "Pitch I",
-            () -> pitchI,
-            (up) -> {pitchI = Trimmer.increment(pitchI, 0.001, 0.2, up); setPitchMotorConfig();}
+            "Yaw I",
+            () -> yawI,
+            (up) -> {yawI = Trimmer.increment(yawI, 0.001, 0.2, up); setYawMotorConfig();}
         );
         trimmer.add(
             "Launcher PID",
-            "Pitch D",
-            () -> pitchD,
-            (up) -> {pitchD = Trimmer.increment(pitchD, 0.001, 0.2, up); setPitchMotorConfig();}
+            "Yaw D",
+            () -> yawD,
+            (up) -> {yawD = Trimmer.increment(yawD, 0.001, 0.2, up); setYawMotorConfig();}
         );
     }
 }

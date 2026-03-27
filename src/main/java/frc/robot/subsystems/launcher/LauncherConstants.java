@@ -34,9 +34,10 @@ public class LauncherConstants {
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0; // (deg) to offset pitch if shooting based on distance is missing
-        public static final double kRPMScaleFactor = .1; // (m/s) scale to offset velocity if shooting based on distance is missing
+        public static final double kRPMScaleFactor = .8; // (m/s) scale to offset velocity if shooting based on distance is missing
         public static final double projectionTime = 0.1; // seconds into the future to predict position
-        public static final double kRPMTolerance = 0.05; // 5 % tolerance when checking flywheel speed is within range
+        public static final double kRPMTolerance = 0.05; // tolerance when checking flywheel speed is within range
+        public static final double maxYawAdjustment = 10; // degrees to adjust yaw to compensate tangential velocity
 
         // Hood Angle Coefficients (p00, p10, p01, p20, p11, p02, p30, p21, p12, p03)
         public static final double[] HOOD_COEFFS = { 90.26, -13.17, 7.925, 1.086, 0.009438, 0.04452, -0.03133,
@@ -46,10 +47,10 @@ public class LauncherConstants {
                         0.005095, 0.000165, 0.004498 };
 
         // --- Geometry Constants ---
-        public static final double ballExitHeight = 0.391; // meters = 15.376 in 
-        private final Translation2d turretPosRobotRel = new Translation2d(-0.033147, 0.1394968); // coordinates are in meters following wpiblue coordinate convention
+        // public static final double ballExitHeight = 0.391; // meters = 15.376 in 
+        public static final Translation2d turretPosRobotRel = new Translation2d(-0.033147, 0.1394968); // coordinates are in meters following wpiblue coordinate convention
         // public static final double blueTrenchLocation = 4.625594;
         // public static final double redTrenchLocation = 11.915394; // meters
-        public static final double trenchTolerance = 0.61; // how close the robot has to be to the trench for the hood to go down
+        // public static final double trenchTolerance = 0.61; // how close the robot has to be to the trench for the hood to go down
 
 }

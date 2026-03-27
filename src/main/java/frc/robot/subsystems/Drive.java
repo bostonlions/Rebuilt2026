@@ -27,7 +27,9 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import choreo.trajectory.SwerveSample;
+import edu.wpi.first.math.MatBuilder;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.Nat;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -47,7 +49,8 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-
+import frc.LimelightHelpers;
+import frc.LimelightHelpers.PoseEstimate;
 import frc.robot.Robot;
 
 public final class Drive implements Subsystem {
@@ -56,6 +59,8 @@ public final class Drive implements Subsystem {
         private static final double kSimLoopPeriod = 0.004; // 4 ms
         private Notifier m_simNotifier = null;
         private double m_lastSimTime;
+        private boolean useVision = true;
+        private int IMUmode = 0;
 
         /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
         private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.kZero;
@@ -191,6 +196,7 @@ public final class Drive implements Subsystem {
             if (Utils.isSimulation()) {
                 startSimThread();
             }
+            
         }
 
         /**
@@ -300,7 +306,36 @@ public final class Drive implements Subsystem {
                     m_hasAppliedOperatorPerspective = true;
                 });
             }
+
+            if (!useVision) return;
+
+        final double yaw = this.getPose().getRotation().getDegrees();
+
+        LimelightHelpers.SetRobotOrientation("limelight-a", yaw, 0, 0, 0, 0, 0);
+        LimelightHelpers.SetIMUMode("limelight-a", IMUmode);
+
+        LimelightHelpers.SetRobotOrientation("limelight-b", yaw, 0, 0, 0, 0, 0);
+        LimelightHelpers.SetIMUMode("limelight-b", IMUmode);
+
+        PoseEstimate bpa = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-a");
+        boolean aValid = bpa != null && bpa.rawFiducials != null && bpa.rawFiducials.length != 0;
+        PoseEstimate bpb = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-b");
+        boolean bValid = bpb != null && bpb.rawFiducials != null && bpb.rawFiducials.length != 0;
+        PoseEstimate bp = bpa; // the pose estimate to actually use; determined later
+
+        if (aValid || bValid) {
+            if (!aValid) bp = bpb;
+            else if (!bValid) bp = bpa;
+            else if (bpa.rawFiducials[0].distToCamera > bpb.rawFiducials[0].distToCamera) bp = bpb;
+            else bp = bpa;
+
+            //System.out.println("Limelight-a X: " + bpa.pose.getX() + ", Y: " + bpa.pose.getY());
+            //System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
+            double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
+            this.addVisionMeasurement(bp.pose, bp.timestampSeconds, MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 99999));
+        
         }
+    }
 
         private void startSimThread() {
             m_lastSimTime = Utils.getCurrentTimeSeconds();
@@ -386,6 +421,8 @@ public final class Drive implements Subsystem {
             return this.getState().Pose;
         }
 
+
+       
         
     }
 
@@ -462,8 +499,8 @@ public final class Drive implements Subsystem {
         private static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
 
         public static final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-            .withDeadband(kSpeedAt12Volts.in(MetersPerSecond) * 0.1)
-            .withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+            .withDeadband(kSpeedAt12Volts.in(MetersPerSecond) * 0.02)
+            .withRotationalDeadband(MaxAngularRate * 0.02) // Add a 10% deadband
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
         public static final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
         public static final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
