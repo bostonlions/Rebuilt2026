@@ -104,11 +104,6 @@ public final class Launcher extends SubsystemBase {
     private boolean forcingDown = false;
     /** Last Motion Magic scale applied to yaw (1.0 = normal, {@link LauncherConstants#kYawLongPathMotionMagicScale} = wrap path). */
     private double m_yawMotionMagicScale = Double.NaN;
-    /**
-     * After a wrap is commanded, stay on the scaled Motion Magic profile until we reach the wrapped goal,
-     * so {@code yawTarget} re-entering the soft limits mid-move does not restore full speed for one direction.
-     */
-    private boolean m_yawLongPathProfileLatched = false;
 
     public static Launcher getInstance() {
         if (instance == null) instance = new Launcher();
@@ -172,7 +167,6 @@ public final class Launcher extends SubsystemBase {
 
     private void setYawMotorConfig() {
         m_yawMotionMagicScale = Double.NaN;
-        m_yawLongPathProfileLatched = false;
         ensureYawMotionMagicScale(1.0);
     }
 
@@ -250,7 +244,6 @@ public final class Launcher extends SubsystemBase {
         final boolean holdLow = atLowLimit && degrees < min && degrees >= min - pastTol;
 
         if (holdHigh || holdLow) {
-            m_yawLongPathProfileLatched = false;
             ensureYawMotionMagicScale(1.0);
             double holdDeg = MathUtil.clamp(current, min, max);
             double wrappedHold = MathUtil.inputModulus(holdDeg, min, max);
@@ -258,29 +251,21 @@ public final class Launcher extends SubsystemBase {
             return;
         }
 
-        double wrapped = MathUtil.inputModulus(degrees, min, max);
-        final boolean commandingWrap = degrees > max || degrees < min;
-        if (commandingWrap) {
-            m_yawLongPathProfileLatched = true;
-        }
-        double errDeg = MathUtil.inputModulus(wrapped - current, -180, 180);
-        if (m_yawLongPathProfileLatched
-            && Math.abs(errDeg) < LauncherConstants.kYawLongPathArriveEpsilonDeg) {
-            m_yawLongPathProfileLatched = false;
-        }
-        ensureYawMotionMagicScale(
-            m_yawLongPathProfileLatched ? LauncherConstants.kYawLongPathMotionMagicScale : 1.0);
+        final boolean longWrap = degrees > max || degrees < min;
+        ensureYawMotionMagicScale(longWrap ? LauncherConstants.kYawLongPathMotionMagicScale : 1.0);
 
+        double wrapped = MathUtil.inputModulus(degrees, min, max);
         yawMotor.setControl(new MotionMagicDutyCycle(-wrapped * LauncherConstants.yawGearRatio / 360.));
     }
 
     /**
-     * Hub geometry, hood angle, and turret yaw toward the active target. Runs even when the flywheel is off (no RB).
+     * Calculates targeting variables using WPILib Geometry and queries the Polynomial Surface.
      */
-    private void updateAimToTarget() {
+    private void prepToShoot() {
         SwerveDriveState state = Drive.Drivetrain.getInstance().getState();
         Pose2d currentPose = state.Pose;
-
+        
+        // 1. Convert Robot-Centric Speeds to Field-Centric Speeds
         double rvx = state.Speeds.vxMetersPerSecond;
         double rvy = state.Speeds.vyMetersPerSecond;
         double robotYaw = currentPose.getRotation().getRadians();
@@ -290,67 +275,67 @@ public final class Launcher extends SubsystemBase {
         double tx = LauncherConstants.turretPosRobotRel.getX();
         double ty = LauncherConstants.turretPosRobotRel.getY();
 
+        // 2. Project pose slightly into the future based on velocity
         Pose2d projectedPose = new Pose2d(
             currentPose.getX() + fieldVx * LauncherConstants.projectionTime + tx * Math.cos(finalRobotYaw) - ty * Math.sin(finalRobotYaw),
             currentPose.getY() + fieldVy * LauncherConstants.projectionTime + tx * Math.sin(finalRobotYaw) + ty * Math.cos(finalRobotYaw),
             new Rotation2d(finalRobotYaw)
         );
 
-        hurling = blueAlliance ?
-            (projectedPose.getX() > 4.625594 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192)) :
+        // 3. Determine Active Target (Hub vs Hurling)
+        hurling = blueAlliance ? 
+            (projectedPose.getX() > 4.625594 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192)) : //TODO: CHECK
             (projectedPose.getX() < 11.915394 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192));
-
-        Translation2d activeTarget = hurling ?
-            new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) :
+            
+        Translation2d activeTarget = hurling ? 
+            new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) : 
             new Translation2d(shootTarget.getX(), shootTarget.getY());
 
+        //System.out.println("Active target: (" + activeTarget.getX() + ", " + activeTarget.getY() + " )" );
+
+        // 4. Calculate Distance and Radial Velocity
         Translation2d robotToTarget = activeTarget.minus(projectedPose.getTranslation());
         targetDist = robotToTarget.getNorm();
         Rotation2d angleToTarget = robotToTarget.getAngle();
+        //System.out.println("AngleToTarget: " + angleToTarget);
 
+        // Dot product of field velocity and the unit vector pointing at the target
         targetRadialVelo = (fieldVx * angleToTarget.getCos()) + (fieldVy * angleToTarget.getSin());
         targetTangentialVelo = (fieldVy * angleToTarget.getCos()) - (fieldVx * angleToTarget.getSin());
 
+        // 5. Query the Polynomial Fit
         double exitVeloMetersPerSec = kinematics.getExitVeloMetersPerSec(targetDist, targetRadialVelo);
         targetRPM = kinematics.getTargetFlywheelRPM(exitVeloMetersPerSec);
         pitchTarget = kinematics.getTargetHoodAngle(targetDist, targetRadialVelo);
 
+        // 6. Calculate Yaw Target (Angle to target minus projected robot heading)
         yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees();
 
+        // 6b. Adjust Yaw Target for tangential velocity
         double yawAdjustment = MathUtil.clamp(-targetTangentialVelo / exitVeloMetersPerSec / Math.cos(pitchTarget * Math.PI / 180) * 180 / Math.PI, -LauncherConstants.maxYawAdjustment, LauncherConstants.maxYawAdjustment);
         yawTarget += yawAdjustment;
 
-        nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61) || MathUtil.isNear(11.915394, currentPose.getX(), 0.61);
-
+        // 7. Apply Safeties and Send to Motors
+        nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61) || MathUtil.isNear(11.915394, currentPose.getX(), 0.61); //TODO: CHECK
+        
+        // 8. Compensate for RPM drop when the ball is launched (this is not used)
         adjustedRPM = kinematics.getAdjustedFlywheelRPM(targetRPM);
 
-        setYaw(yawTarget);
-        if (!forcingDown) {
-            if (nearTrench) {
-                setPitch(LauncherConstants.pitchBounds.getSecond());
-            } else {
-                setPitch(pitchTarget);
-            }
-        }
-    }
 
-    /** Spin flywheel toward {@link #adjustedRPM} when STANDBY/FIRE (RB held); not tied to X / fire button. */
-    private void applyFlywheelWhenShooting() {
-        if (toggledOn || mode == Mode.OFF) {
-            if (mode == Mode.OFF) {
-                shooterSpeedReady = false;
-            }
-            return;
-        }
         launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60.0));
+        setYaw(yawTarget);
+        
         double currentRPM = launchMotor.getVelocity().getValueAsDouble() * 60.0;
         shooterSpeedReady = targetRPM > 0 && Math.abs(currentRPM - targetRPM) < (targetRPM * LauncherConstants.kRPMTolerance);
-    }
 
-    /** Full prep: aim plus flywheel if in STANDBY/FIRE. */
-    private void prepToShoot() {
-        updateAimToTarget();
-        applyFlywheelWhenShooting();
+        if (nearTrench) {
+            System.out.println("Place1");
+            setPitch(LauncherConstants.pitchBounds.getSecond());
+            // if (mode == Mode.FIRE) setMode(Mode.STANDBY); 
+        } else {
+            System.out.println("Place 2 (should be setting to target)");
+            setPitch(pitchTarget);
+        }
     }
 
     private void setFeeder(boolean on) {
@@ -416,7 +401,10 @@ public final class Launcher extends SubsystemBase {
 
         if (newMode == Mode.OFF) {
             launchMotor.setControl(brake);
-            setFeeder(false);
+            setYaw(0);
+            System.out.println("From SetMode");
+            setPitch(LauncherConstants.pitchBounds.getSecond());
+            setFeeder(false); // Make sure feeder is off
             shooterSpeedReady = false;
         }
         else {
@@ -442,9 +430,9 @@ public final class Launcher extends SubsystemBase {
 
     @Override
     public void periodic() {
-        if (!toggledOn) {
-            updateAimToTarget();
-            applyFlywheelWhenShooting();
+        // Run feeder spinner at slow rate when intake is spinning (unless we're firing)
+        if (mode != Mode.OFF) { 
+            prepToShoot();
         }
 
         if (mode == Mode.FIRE && !toggledOn) {

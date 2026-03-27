@@ -13,8 +13,6 @@ public class LauncherConstants {
         public static final double kTurretLimitPastHoldDeg = 5.0;
         /** Scale on yaw Motion Magic cruise / accel / jerk when the turret must take the long wrap path (80% less → 0.2). */
         public static final double kYawLongPathMotionMagicScale = 0.1;
-        /** Clear latched long-path slow profile when within this many degrees of the wrapped setpoint. */
-        public static final double kYawLongPathArriveEpsilonDeg = 3.0;
         public static final double kYawMotionMagicCruiseVelocity = 600;
         public static final double kYawMotionMagicAcceleration = 1000;
         public static final double kYawMotionMagicJerk = 10000;
