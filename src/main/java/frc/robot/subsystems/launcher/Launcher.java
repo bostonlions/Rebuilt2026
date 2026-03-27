@@ -239,6 +239,9 @@ public final class Launcher extends SubsystemBase {
         // This does not swing around to the far side unless the angle we are aiming for 
         // is more than 5deg larger (prevent violent swinging near limits)
         // When a swing does occur we lower the speed so that it does not violently swing around
+        if (degrees<0){
+            degrees = degrees + 360;
+        }
         final double min = LauncherConstants.yawBounds.getFirst();
         final double max = LauncherConstants.yawBounds.getSecond();
         final double pastTol = LauncherConstants.kTurretLimitPastHoldDeg;
@@ -301,6 +304,8 @@ public final class Launcher extends SubsystemBase {
         hurling = blueAlliance ? 
             (projectedPose.getX() > 4.625594 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192)) : //TODO: CHECK
             (projectedPose.getX() < 11.915394 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192));
+
+        System.out.println(hurling);
             
         Translation2d activeTarget = hurling ? 
             new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) : 
@@ -344,11 +349,9 @@ public final class Launcher extends SubsystemBase {
         shooterSpeedReady = targetRPM > 0 && Math.abs(currentRPM - targetRPM) < (targetRPM * LauncherConstants.kRPMTolerance);
 
         if (nearTrench) {
-            System.out.println("Place1");
             setPitch(LauncherConstants.pitchBounds.getSecond());
             // if (mode == Mode.FIRE) setMode(Mode.STANDBY); 
         } else {
-            System.out.println("Place 2 (should be setting to target)");
             setPitch(pitchTarget);
         }
     }
@@ -417,7 +420,6 @@ public final class Launcher extends SubsystemBase {
         if (newMode == Mode.OFF) {
             launchMotor.setControl(brake);
             setYaw(0);
-            System.out.println("From SetMode");
             setPitch(LauncherConstants.pitchBounds.getSecond());
             setFeeder(false); // Make sure feeder is off
             shooterSpeedReady = false;

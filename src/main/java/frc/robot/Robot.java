@@ -47,8 +47,6 @@ public final class Robot extends TimedRobot {
     public void robotPeriodic() {
         CommandScheduler.getInstance().run();
 
-        
-        
         Pose2d currentPose = m_robotContainer.drivetrain.getPose();
         //System.out.println("" + currentPose.getX()+ ", " + currentPose.getY());
 
