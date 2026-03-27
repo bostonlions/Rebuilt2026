@@ -102,6 +102,8 @@ public final class Launcher extends SubsystemBase {
     private boolean toggledOn = false;
     private boolean dynamicYaw;
     private boolean forcingDown = false;
+    /** Last Motion Magic scale applied to yaw (1.0 = normal, {@link LauncherConstants#kYawLongPathMotionMagicScale} = wrap path). */
+    private double m_yawMotionMagicScale = Double.NaN;
 
     public static Launcher getInstance() {
         if (instance == null) instance = new Launcher();
@@ -130,11 +132,11 @@ public final class Launcher extends SubsystemBase {
         yawMotor.setPosition(-calcYawDegrees() * LauncherConstants.yawGearRatio / 360.);
 
         forcePitchDown();
-        setYaw(0);
         setPitch(LauncherConstants.pitchBounds.getSecond()); // zero at min pitch
         setLaunchMotorConfig(); // separate function to allow for smart dashboard pid tuning
         setPitchMotorConfig();
         setYawMotorConfig();
+        setYaw(0);
         initTrimmer();
     }
 
@@ -164,15 +166,25 @@ public final class Launcher extends SubsystemBase {
     }
 
     private void setYawMotorConfig() {
+        m_yawMotionMagicScale = Double.NaN;
+        ensureYawMotionMagicScale(1.0);
+    }
+
+    /** Applies yaw PID slot + Motion Magic limits scaled by {@code scale} (1.0 normal, {@link LauncherConstants#kYawLongPathMotionMagicScale} for wrap). */
+    private void ensureYawMotionMagicScale(double scale) {
+        if (Double.isFinite(m_yawMotionMagicScale) && Math.abs(scale - m_yawMotionMagicScale) < 1e-6) {
+            return;
+        }
+        m_yawMotionMagicScale = scale;
         yawMotor.getConfigurator().apply(
             new TalonFXConfiguration()
-            .withSlot0(new Slot0Configs().withKP(yawP).withKI(yawI).withKD(yawD))
-            .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(600)
-                .withMotionMagicAcceleration(1000)
-                .withMotionMagicJerk(10000))
-            .withTorqueCurrent(new TorqueCurrentConfigs()
-                .withPeakForwardTorqueCurrent(Amps.of(40)).withPeakReverseTorqueCurrent(Amps.of(-40)))
+                .withSlot0(new Slot0Configs().withKP(yawP).withKI(yawI).withKD(yawD))
+                .withMotionMagic(new MotionMagicConfigs()
+                    .withMotionMagicCruiseVelocity(LauncherConstants.kYawMotionMagicCruiseVelocity * scale)
+                    .withMotionMagicAcceleration(LauncherConstants.kYawMotionMagicAcceleration * scale)
+                    .withMotionMagicJerk(LauncherConstants.kYawMotionMagicJerk * scale))
+                .withTorqueCurrent(new TorqueCurrentConfigs()
+                    .withPeakForwardTorqueCurrent(Amps.of(40)).withPeakReverseTorqueCurrent(Amps.of(-40)))
         );
     }
 
@@ -215,11 +227,35 @@ public final class Launcher extends SubsystemBase {
         pitchMotor.setControl(new MotionMagicDutyCycle((LauncherConstants.pitchBounds.getSecond() - degrees) / LauncherConstants.pitchGearRatio));
     }
     /**
-     * 
-     * @param degrees desired yaw in degrees
+     * @param degrees desired turret yaw in degrees (robot-relative), same convention as {@link MathUtil#inputModulus}.
      */
     private void setYaw(double degrees) {
-        yawMotor.setControl(new MotionMagicDutyCycle(-MathUtil.inputModulus(degrees, LauncherConstants.yawBounds.getFirst(), LauncherConstants.yawBounds.getSecond()) * LauncherConstants.yawGearRatio / 360.));
+        // This does not swing around to the far side unless the angle we are aiming for 
+        // is more than 5deg larger (prevent violent swinging near limits)
+        // When a swing does occur we lower the speed so that it does not violently swing around
+        final double min = LauncherConstants.yawBounds.getFirst();
+        final double max = LauncherConstants.yawBounds.getSecond();
+        final double pastTol = LauncherConstants.kTurretLimitPastHoldDeg;
+        final double current = calcYawDegrees();
+
+        final boolean atHighLimit = current >= max - pastTol;
+        final boolean atLowLimit = current <= min + pastTol;
+        final boolean holdHigh = atHighLimit && degrees > max && degrees <= max + pastTol;
+        final boolean holdLow = atLowLimit && degrees < min && degrees >= min - pastTol;
+
+        if (holdHigh || holdLow) {
+            ensureYawMotionMagicScale(1.0);
+            double holdDeg = MathUtil.clamp(current, min, max);
+            double wrappedHold = MathUtil.inputModulus(holdDeg, min, max);
+            yawMotor.setControl(new MotionMagicDutyCycle(-wrappedHold * LauncherConstants.yawGearRatio / 360.));
+            return;
+        }
+
+        final boolean longWrap = degrees > max || degrees < min;
+        ensureYawMotionMagicScale(longWrap ? LauncherConstants.kYawLongPathMotionMagicScale : 1.0);
+
+        double wrapped = MathUtil.inputModulus(degrees, min, max);
+        yawMotor.setControl(new MotionMagicDutyCycle(-wrapped * LauncherConstants.yawGearRatio / 360.));
     }
 
     /**

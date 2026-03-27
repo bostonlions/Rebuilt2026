@@ -33,6 +33,7 @@ import edu.wpi.first.math.Nat;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -422,24 +423,22 @@ public final class Drive implements Subsystem {
         }
 
         public Pose2d getPoseAsIfRed() {
-            Pose2d toReturn = this.getPose();
-            DriverStation.getAlliance().ifPresentOrElse(allianceColor -> {
-                if (allianceColor == Alliance.Blue) {
-                    toReturn = toReturn.rotateAround(new Translation2d(8.27, 4.035), Rotation2d.k180deg);
-                }}, () -> {
-                    throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
-                });
-            return toReturn;
+            Alliance a = DriverStation.getAlliance().orElseThrow(() -> new IllegalArgumentException(
+                "Is this code happening too early and the alliance color isn't available yet?"));
+            Pose2d p = getPose();
+            if (a == Alliance.Blue) {
+                return p.rotateAround(new Translation2d(8.27, 4.035), Rotation2d.k180deg);
+            }
+            return p;
         }
 
         public void resetPoseAsIfRed(Pose2d pose) {
-            DriverStation.getAlliance().ifPresentOrElse(allianceColor -> {
-                if (allianceColor == Alliance.Blue) {
-                    pose = pose.rotateAround(new Translation2d(8.27, 4.035), Rotation2d.k180deg);
-                }}, () -> {
-                    throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
-                });
-            this.resetPose(pose);
+            Alliance a = DriverStation.getAlliance().orElseThrow(() -> new IllegalArgumentException(
+                "Is this code happening too early and the alliance color isn't available yet?"));
+            if (a == Alliance.Blue) {
+                pose = pose.rotateAround(new Translation2d(8.27, 4.035), Rotation2d.k180deg);
+            }
+            resetPose(pose);
         }
 
 

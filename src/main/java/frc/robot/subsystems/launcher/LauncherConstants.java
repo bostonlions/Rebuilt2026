@@ -9,7 +9,13 @@ public class LauncherConstants {
         public static final double c11Offset = 0.009; // 11-tooth cancoder value at 0 degrees
         public static final double c12Offset = 0.007; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
-
+        /** When near a soft limit, allow this much past the limit without re-homing via wrap (hold position). */
+        public static final double kTurretLimitPastHoldDeg = 5.0;
+        /** Scale on yaw Motion Magic cruise / accel / jerk when the turret must take the long wrap path (80% less → 0.2). */
+        public static final double kYawLongPathMotionMagicScale = 0.1;
+        public static final double kYawMotionMagicCruiseVelocity = 600;
+        public static final double kYawMotionMagicAcceleration = 1000;
+        public static final double kYawMotionMagicJerk = 10000;
 
         // --- Pitch (Hood) Constants ---
         private static final double minHoodAngle = 20.0; // hood angle relative to horizontal
