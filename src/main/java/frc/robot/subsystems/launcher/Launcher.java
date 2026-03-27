@@ -58,6 +58,7 @@ public final class Launcher extends SubsystemBase {
     private Translation3d shootTarget = null; 
     private Translation2d hurlTargetXZ = null; 
     private static Launcher instance = null;
+    private Translation3d shotVector = null;
 
     private final StaticBrake brake = new StaticBrake();
     private final DutyCycleOut feederSpinnerMotionRequest = new DutyCycleOut(LauncherConstants.kFeederSpinnerMotionDuty);
@@ -139,7 +140,7 @@ public final class Launcher extends SubsystemBase {
 
     private void setLaunchMotorConfig() {
         launchMotor.getConfigurator().apply(new TalonFXConfiguration()
-            .withSlot0(new Slot0Configs().withKP(launchP).withKI(launchI).withKD(launchD))
+            .withSlot0(new Slot0Configs().withKP(launchP).withKI(launchI).withKD(0).withKV(0.01035))
             .withMotionMagic(new MotionMagicConfigs()
                 .withMotionMagicCruiseVelocity(60)
                 .withMotionMagicAcceleration(100)
@@ -270,7 +271,7 @@ public final class Launcher extends SubsystemBase {
         double exitVeloMetersPerSec = kinematics.getExitVeloMetersPerSec(targetDist, targetRadialVelo);
         targetRPM = kinematics.getTargetFlywheelRPM(exitVeloMetersPerSec);
         pitchTarget = kinematics.getTargetHoodAngle(targetDist, targetRadialVelo);
-        
+
         // 6. Calculate Yaw Target (Angle to target minus projected robot heading)
         yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees();
 
@@ -281,7 +282,7 @@ public final class Launcher extends SubsystemBase {
         // 7. Apply Safeties and Send to Motors
         nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61) || MathUtil.isNear(11.915394, currentPose.getX(), 0.61); //TODO: CHECK
         
-        // 8. Compensate for RPM drop when the ball is launched
+        // 8. Compensate for RPM drop when the ball is launched (this is not used)
         adjustedRPM = kinematics.getAdjustedFlywheelRPM(targetRPM);
 
 
@@ -455,6 +456,8 @@ public final class Launcher extends SubsystemBase {
         builder.addDoubleProperty("Yaw Target", () -> yawTarget, null);
 
         builder.addDoubleProperty("Launch Speed (RPM)", () -> launchMotor.getVelocity().getValueAsDouble() * 60.0, null);
+        builder.addDoubleProperty("Shooter Voltage", () -> launchMotor.getDutyCycle().getValueAsDouble(), null);
+        
 
         builder.addDoubleProperty("cancoder12Raw", () -> yaw12cancoder.getAbsolutePosition().getValue().in(Units.Rotations), null);
         builder.addDoubleProperty("cancoder11Raw", () -> yaw11cancoder.getAbsolutePosition().getValue().in(Units.Rotations), null);
@@ -552,7 +555,7 @@ public final class Launcher extends SubsystemBase {
         );
         trimmer.add(
             "Launcher PID",
-            "Yaw I",
+            "Launch I",
             () -> yawI,
             (up) -> {yawI = Trimmer.increment(yawI, 0.001, 0.2, up); setYawMotorConfig();}
         );

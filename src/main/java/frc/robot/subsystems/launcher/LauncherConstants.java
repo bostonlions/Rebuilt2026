@@ -5,7 +5,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 
 public class LauncherConstants {
         // --- Turret & Yaw Constants ---
-        public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-100., 260.); // in degrees
+        public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-90., 230.); // in degrees, maximum is like -100 - 260 but I make it less bc the wire management was breaking
         public static final double c11Offset = 0.009; // 11-tooth cancoder value at 0 degrees
         public static final double c12Offset = 0.007; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
@@ -23,8 +23,8 @@ public class LauncherConstants {
         public static final double pitchLimitRotations = -0.25;
 
         // --- Default PID & Control Tuning ---
-        public static final double kDefaultLaunchP = 0.02;
-        public static final double kDefaultLaunchI = 0.1;
+        public static final double kDefaultLaunchP = 0.04;
+        public static final double kDefaultLaunchI = 0.0;
         public static final double kDefaultLaunchD = 0.0;
 
         // --- Motor Duty Cycles ---
@@ -34,7 +34,7 @@ public class LauncherConstants {
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0; // (deg) to offset pitch if shooting based on distance is missing
-        public static final double kRPMScaleFactor = .8; // (m/s) scale to offset velocity if shooting based on distance is missing
+        public static final double kRPMScaleFactor = .85; // (m/s) scale to offset velocity if shooting based on distance is missing
         public static final double projectionTime = 0.1; // seconds into the future to predict position
         public static final double kRPMTolerance = 0.05; // tolerance when checking flywheel speed is within range
         public static final double maxYawAdjustment = 10; // degrees to adjust yaw to compensate tangential velocity
