@@ -81,10 +81,10 @@ public final class Drive implements Subsystem {
             );
             return instance;
         }
-        //THIS IS ALL FOR PATHPLANNER I DIDN"T FIGURE IT OUT SO I COMMENTED IT. 
+        //THIS IS ALL FOR PATHPLANNER I DIDN"T FIGURE IT OUT SO I COMMENTED IT.
         //MAIN PROBLEM: Pathplanner wants a driveRobotRelative command and I don't think we have that.
-        
-        /* 
+
+        /*
     // Load the RobotConfig from the GUI settings. You should probably
     // store this in your Constants file
     RobotConfig config;
@@ -196,7 +196,7 @@ public final class Drive implements Subsystem {
             if (Utils.isSimulation()) {
                 startSimThread();
             }
-            
+
         }
 
         /**
@@ -333,7 +333,7 @@ public final class Drive implements Subsystem {
             //System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
             double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
             this.addVisionMeasurement(bp.pose, bp.timestampSeconds, MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 99999));
-        
+
         }
     }
 
@@ -421,9 +421,28 @@ public final class Drive implements Subsystem {
             return this.getState().Pose;
         }
 
+        public Pose2d getPoseAsIfRed() {
+            Pose2d toReturn = this.getPose();
+            DriverStation.getAlliance().ifPresentOrElse(allianceColor -> {
+                if (allianceColor == Alliance.Blue) {
+                    toReturn = toReturn.rotateAround(new Translation2d(8.27, 4.035), Rotation2d.k180deg);
+                }}, () -> {
+                    throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
+                });
+            return toReturn;
+        }
 
-       
-        
+        public void resetPoseAsIfRed(Pose2d pose) {
+            DriverStation.getAlliance().ifPresentOrElse(allianceColor -> {
+                if (allianceColor == Alliance.Blue) {
+                    pose = pose.rotateAround(new Translation2d(8.27, 4.035), Rotation2d.k180deg);
+                }}, () -> {
+                    throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
+                });
+            this.resetPose(pose);
+        }
+
+
     }
 
     public static final class SwerveConstants {

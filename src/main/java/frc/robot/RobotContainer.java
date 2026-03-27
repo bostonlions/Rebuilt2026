@@ -36,7 +36,7 @@ public final class RobotContainer {
     private final Launcher launcher;
     private final Trimmer trimmer = Trimmer.getInstance();
     public static AutoFactory autoFactory;
-    
+
 
     // // Test toggles
     // private boolean launcherTestEnabled = false;
@@ -75,7 +75,7 @@ public final class RobotContainer {
             .onTrue(new InstantCommand(() -> intake.setExtension(false), intake));
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.LB))
             .onTrue(new InstantCommand(() -> intake.toggleSpin(), intake));
-        
+
 
         launcher = Launcher.getInstance();
         SmartDashboard.putData(launcher);
@@ -92,7 +92,7 @@ public final class RobotContainer {
         // // Hurling mode: Right Bumper toggles everything on/off.
         // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
         //     .onTrue(new InstantCommand(() -> launcher.simpleToggle(370/*0*/, 31, Double.NaN))); // Hurl shot
-        
+
         // UNCOMMENT WHEN READY FOR SHOOTNIG WITH POSE2D
         //1. Spin up / Aim (STANDBY)
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
@@ -103,7 +103,7 @@ public final class RobotContainer {
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
             .onTrue(new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE)))
             .onFalse(new InstantCommand(() -> {
-                // When you let go of the fire button, drop back to STANDBY if the spin-up 
+                // When you let go of the fire button, drop back to STANDBY if the spin-up
                 // button is still held, otherwise turn OFF.
                 if (controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB)) {
                     launcher.setMode(Launcher.Mode.STANDBY);
@@ -119,15 +119,15 @@ public final class RobotContainer {
         // Elevator is open-loop from operator left stick Y in Robot.teleopPeriodic (Climber.driveFromStick).
 
         autoFactory = new AutoFactory(
-            drivetrain::getPose, // A function that returns the current robot pose
-            drivetrain::resetPose, // A function that resets the current robot pose to the provided Pose2d
-            drivetrain::followTrajectory, // The drive subsystem trajectory follower 
-            false, // If alliance flipping should be enabled 
+            drivetrain::getPoseAsIfRed, // A function that returns the current robot pose
+            drivetrain::resetPoseAsIfRed, // A function that resets the current robot pose to the provided Pose2d
+            drivetrain::followTrajectory, // The drive subsystem trajectory follower
+            false, // If alliance flipping should be enabled
             drivetrain // The drive subsystem
         );
 
 
-        
+
         /*
          * TRIMMER - all subsystems can add items to be adjusted.
          * These commands run in disabled mode (ignoringDisable), so you can
@@ -148,7 +148,7 @@ public final class RobotContainer {
         return Auton.getInstance().getCommand();
     }
 
-    
+
 
     public static final class ControlBoard {
         private static ControlBoard mInstance = null;
