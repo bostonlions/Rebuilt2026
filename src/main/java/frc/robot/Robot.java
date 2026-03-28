@@ -75,6 +75,9 @@ public final class Robot extends TimedRobot {
 
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
         if (m_autonomousCommand != null) CommandScheduler.getInstance().schedule(m_autonomousCommand);
+
+        LimelightHelpers.SetThrottle("limelight-a", 0);
+        LimelightHelpers.SetThrottle("limelight-b", 0);
     }
 
     @Override

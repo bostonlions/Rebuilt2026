@@ -24,7 +24,10 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.ParallelRaceGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.ResetMode;
@@ -53,7 +56,8 @@ public final class Intake extends SubsystemBase {
     private final DutyCycleOut krakenSpinDuty;
     private final boolean spinnerIsKraken;
 
-    private final double inPosition = 0.35; //.35 is flush with bumper, .1 is flush with hard stop
+    private final double inPosition = 0.25; //.35 is flush with bumper, .1 is flush with hard stop
+    private final double partialIn = 0.7; // for agitation
     private final double outPosition = 0.9355;
     private final double intakeSpeed = 0.48;
 
@@ -134,6 +138,14 @@ public final class Intake extends SubsystemBase {
 
     @Override
     public void periodic() {}
+
+    public ParallelRaceGroup autoAgitateCmd() {
+        return new InstantCommand(() -> extendMotor.setControl(new MotionMagicDutyCycle(partialIn)), this).andThen(
+            new WaitCommand(0.25),
+            new InstantCommand(() -> setExtension(true), this),
+            new WaitCommand(0.25)
+        ).repeatedly().withTimeout(5);
+    }
 
     public boolean isRetracted() {
         return edu.wpi.first.math.MathUtil.isNear(inPosition,

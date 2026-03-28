@@ -6,8 +6,8 @@ import edu.wpi.first.math.geometry.Translation2d;
 public class LauncherConstants {
         // --- Turret & Yaw Constants ---
         public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-90., 230.); // in degrees, maximum is like -100 - 260 but I make it less bc the wire management was breaking
-        public static final double c11Offset = 0.113; // 11-tooth cancoder value at 0 degrees
-        public static final double c12Offset = 0.107; // 12-tooth cancoder value at 0 degrees
+        public static final double c11Offset = 0.013; // 11-tooth cancoder value at 0 degrees
+        public static final double c12Offset = 0.035; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
         /** When near a soft limit, allow this much past the limit without re-homing via wrap (hold position). */
         public static final double kTurretLimitPastHoldDeg = 5.0;
@@ -26,7 +26,7 @@ public class LauncherConstants {
         public static final double maxPitch = 90 - minHoodAngle; // 0 meaning a shot paralell to the floor and 90 meaning vertical shot
         public static final Pair<Double, Double> pitchBounds = new Pair<Double, Double>(minPitch, maxPitch); // min, max pitch -- in degrees
         public static final double pitchGearRatio = (1 / 53.4545) * 360; // In pitch degrees per rotation because hood has a 1:53.4545 ratio. 
-        public static final double pitchForceTorque = -10;
+        public static final double pitchForceTorque = -5;
         public static final double pitchForceVelocityLimit = -0.1;
         public static final double pitchLimitRotations = -0.25;
 
@@ -40,13 +40,13 @@ public class LauncherConstants {
         public static final double kDefaultYawD = 0.022;
 
         // --- Motor Duty Cycles ---
-        public static final double kFeederSpinnerMotionDuty = 0.5; // for washing machine speed (can be .5)
+        public static final double kFeederSpinnerMotionDuty = 0.8; // for washing machine speed (can be .5)
         public static final double kFeederSpinnerWithIntakeRequestDuty = 0.1; // for washing machine speed when intaking
-        public static final double kFeederRollerMotionDuty = 0.5; // for feeder roller speed
+        public static final double kFeederRollerMotionDuty = 0.8; // for feeder roller speed
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0; // (deg) to offset pitch if shooting based on distance is missing
-        public static final double kRPMScaleFactor = .9; // .82 home // (m/s) scale to offset velocity if shooting based on distance is missing
+        public static final double kRPMScaleFactor = .85; // (m/s) scale to offset velocity if shooting based on distance is missing
         public static final double projectionTime = 0.1; // seconds into the future to predict position
         public static final double kRPMTolerance = 0.05; // tolerance when checking flywheel speed is within range
         public static final double maxYawAdjustment = 10; // degrees to adjust yaw to compensate tangential velocity
@@ -64,5 +64,4 @@ public class LauncherConstants {
         // public static final double blueTrenchLocation = 4.625594;
         // public static final double redTrenchLocation = 11.915394; // meters
         // public static final double trenchTolerance = 0.61; // how close the robot has to be to the trench for the hood to go down
-
 }

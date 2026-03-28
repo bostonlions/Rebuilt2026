@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
+
 import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Trimmer;
@@ -68,7 +69,10 @@ public final class Auton extends SubsystemBase {
                 new InstantCommand(() -> intake.setExtension(false), intake)
             )
         ).andThen(new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY), launcher),
-            new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE), launcher)))
+            new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE), launcher),
+            new InstantCommand(() -> intake.toggleSpin(), intake),
+            intake.autoAgitateCmd(),
+            new InstantCommand(() -> intake.toggleSpin(), intake)))
     );
 
     private static SequentialCommandGroup followPathCommand(String path) {

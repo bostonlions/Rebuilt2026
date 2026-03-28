@@ -75,9 +75,10 @@ public final class RobotContainer {
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.LB))
             .onTrue(new InstantCommand(() -> intake.toggleSpin(), intake));
 
-
         launcher = Launcher.getInstance();
         SmartDashboard.putData(launcher);
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.B))
+            .onTrue(new InstantCommand(() -> launcher.forcePitchDown(), launcher));
         // --- SHOOTING ---
         // Controlls:
         // X: Simple toggle shooter / Shoot
@@ -144,7 +145,6 @@ public final class RobotContainer {
     }
 
 
-
     public static final class ControlBoard {
         private static ControlBoard mInstance = null;
         public final CustomXboxController operator;
@@ -169,20 +169,20 @@ public final class RobotContainer {
             kSwerveDeadband = ControllerConstants.stickDeadband;
         }
 
-        public boolean getFeederSpinnerTestButton() {
-            // Operator Xbox controller A button
-            return operator.getButton(CustomXboxController.Button.A);
-        }
+        // private boolean getFeederSpinnerTestButton() {
+        //     // Operator Xbox controller A button
+        //     return operator.getButton(CustomXboxController.Button.A);
+        // }
 
-        public boolean getFeederRollerToggleButton() {
-            // Operator Xbox controller X button
-            return operator.getButton(CustomXboxController.Button.X);
-        }
+        // private boolean getFeederRollerToggleButton() {
+        //     // Operator Xbox controller X button
+        //     return operator.getButton(CustomXboxController.Button.X);
+        // }
 
-        public boolean getLauncherToggleButton() {
-            // Operator Xbox controller Y button
-            return operator.getButton(CustomXboxController.Button.Y);
-        }
+        // private boolean getLauncherToggleButton() {
+        //     // Operator Xbox controller Y button
+        //     return operator.getButton(CustomXboxController.Button.Y);
+        // }
 
         private Translation2d getSwerveTranslation() {
             double forwardAxis = 0;
@@ -192,7 +192,7 @@ public final class RobotContainer {
                 forwardAxis = driver.getRawAxis(2);
                 strafeAxis = driver.getRawAxis(1);
                 double mag = Math.hypot(forwardAxis, strafeAxis);
-                double curveFactor = Math.pow(mag, 1.5); // changed from .25
+                double curveFactor = mag; // Math.pow(mag, 1.5); // changed from .25
                 forwardAxis = forwardAxis * curveFactor;
                 strafeAxis = strafeAxis * curveFactor;
             } else {

@@ -71,9 +71,11 @@ public final class Launcher extends SubsystemBase {
 
     private double yawP = LauncherConstants.kDefaultYawP;
     private double yawI = LauncherConstants.kDefaultYawI;
-    private double yawD = LauncherConstants.kDefaultYawI;
+    private double yawD = LauncherConstants.kDefaultYawD;
 
     private double pitchP = 0.1, pitchI = 0.0, pitchD = 0.0;
+
+    private double pitchTorque; // member variable for use in smart dashboard
 
     private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBusJustice);
     private final TalonFX pitchMotor = new TalonFX(Ports.PITCH_MOTOR, kCANBusJustice);
@@ -223,7 +225,7 @@ public final class Launcher extends SubsystemBase {
     private double getPitch() {
         return pitchMotor.getPosition().getValueAsDouble() * LauncherConstants.pitchGearRatio + LauncherConstants.pitchBounds.getFirst();
     }
-    
+
     private void setPitch(double degrees) {
         System.out.println("SetPitch: " + degrees);
         if (degrees < LauncherConstants.pitchBounds.getFirst() || degrees > LauncherConstants.pitchBounds.getSecond()) {
@@ -461,6 +463,7 @@ public final class Launcher extends SubsystemBase {
     }
 
     public void forcePitchDown() {
+        if (forcingDown) return;
         forcingDown = true;
         pitchMotor.setControl(new DutyCycleOut(-0.1));
     }
@@ -484,8 +487,7 @@ public final class Launcher extends SubsystemBase {
             feeder_roller.setControl(brake); // Keep roller off unless firing
         }
 
-
-        double pitchTorque = pitchMotor.getTorqueCurrent().getValueAsDouble();
+        pitchTorque = pitchMotor.getTorqueCurrent().getValueAsDouble();
         if (pitchTorque < pitchMinTorque) pitchMinTorque = pitchTorque;
         if (pitchTorque > pitchMaxTorque) pitchMaxTorque = pitchTorque;
 
@@ -517,6 +519,7 @@ public final class Launcher extends SubsystemBase {
         builder.addStringProperty("Mode", () -> mode.toString(), null);
         builder.addDoubleProperty("Seconds left until hopper color switches:", () -> Robot.getCountDown(), null);
         builder.addBooleanProperty("hurling", () -> hurling, null);
+        builder.addBooleanProperty("Forcing Down", () -> forcingDown, null);
         builder.addBooleanProperty("shooterSpeedReady", () -> shooterSpeedReady, null);
         builder.addDoubleProperty("shootTargetX", () -> shootTarget.getX(), null);
         builder.addDoubleProperty("shootTargetY", () -> shootTarget.getY(), null);
@@ -532,7 +535,6 @@ public final class Launcher extends SubsystemBase {
 
         builder.addDoubleProperty("Launch Speed (RPM)", () -> launchMotor.getVelocity().getValueAsDouble() * 60.0, null);
         builder.addDoubleProperty("Shooter Voltage", () -> launchMotor.getDutyCycle().getValueAsDouble(), null);
-        
 
         builder.addDoubleProperty("cancoder12Raw", () -> yaw12cancoder.getAbsolutePosition().getValue().in(Units.Rotations), null);
         builder.addDoubleProperty("cancoder11Raw", () -> yaw11cancoder.getAbsolutePosition().getValue().in(Units.Rotations), null);
@@ -546,6 +548,7 @@ public final class Launcher extends SubsystemBase {
         builder.addDoubleProperty("pitch", () -> getPitch(), null);
         builder.addDoubleProperty("pitchMinTorque", () -> pitchMinTorque, null);
         builder.addDoubleProperty("pitchMaxTorque", () -> pitchMaxTorque, null);
+        builder.addDoubleProperty("Pitch Torque", () -> pitchTorque, null);
 
         builder.addDoubleProperty("Launch Speed", () -> launchMotor.getVelocity().getValueAsDouble(), null);
         builder.addDoubleProperty("Simple Launch RPM Target", () -> simpleLaunchRpm, null);
