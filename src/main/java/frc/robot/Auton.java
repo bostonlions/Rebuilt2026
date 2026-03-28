@@ -63,11 +63,12 @@ public final class Auton extends SubsystemBase {
             new WaitCommand(1).andThen(
                 new InstantCommand(() -> intake.setExtension(true), intake),
                 new InstantCommand(() -> intake.toggleSpin(), intake),
-                new WaitCommand(2),
+                new WaitCommand(3),
                 new InstantCommand(() -> intake.toggleSpin(), intake),
                 new InstantCommand(() -> intake.setExtension(false), intake)
             )
-        ).andThen(() -> launcher.setMode(Launcher.Mode.FIRE), launcher))
+        ).andThen(new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY), launcher),
+            new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE), launcher)))
     );
 
     private static SequentialCommandGroup followPathCommand(String path) {
