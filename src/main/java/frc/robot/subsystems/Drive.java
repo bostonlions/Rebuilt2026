@@ -310,33 +310,33 @@ public final class Drive implements Subsystem {
 
             if (!useVision) return;
 
-        final double yaw = this.getPose().getRotation().getDegrees();
+            final double yaw = this.getPose().getRotation().getDegrees();
 
-        LimelightHelpers.SetRobotOrientation("limelight-a", yaw, 0, 0, 0, 0, 0);
-        LimelightHelpers.SetIMUMode("limelight-a", IMUmode);
+            LimelightHelpers.SetRobotOrientation("limelight-a", yaw, 0, 0, 0, 0, 0);
+            LimelightHelpers.SetIMUMode("limelight-a", IMUmode);
 
-        LimelightHelpers.SetRobotOrientation("limelight-b", yaw, 0, 0, 0, 0, 0);
-        LimelightHelpers.SetIMUMode("limelight-b", IMUmode);
+            LimelightHelpers.SetRobotOrientation("limelight-b", yaw, 0, 0, 0, 0, 0);
+            LimelightHelpers.SetIMUMode("limelight-b", IMUmode);
 
-        PoseEstimate bpa = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-a");
-        boolean aValid = bpa != null && bpa.rawFiducials != null && bpa.rawFiducials.length != 0;
-        PoseEstimate bpb = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-b");
-        boolean bValid = bpb != null && bpb.rawFiducials != null && bpb.rawFiducials.length != 0;
-        PoseEstimate bp = bpa; // the pose estimate to actually use; determined later
+            PoseEstimate bpa = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-a");
+            boolean aValid = bpa != null && bpa.rawFiducials != null && bpa.rawFiducials.length != 0;
+            PoseEstimate bpb = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-b");
+            boolean bValid = bpb != null && bpb.rawFiducials != null && bpb.rawFiducials.length != 0;
+            PoseEstimate bp = bpa; // the pose estimate to actually use; determined later
 
-        if (aValid || bValid) {
-            if (!aValid) bp = bpb;
-            else if (!bValid) bp = bpa;
-            else if (bpa.rawFiducials[0].distToCamera > bpb.rawFiducials[0].distToCamera) bp = bpb;
-            else bp = bpa;
+            if (aValid || bValid) {
+                if (!aValid) bp = bpb;
+                else if (!bValid) bp = bpa;
+                else if (bpa.rawFiducials[0].distToCamera > bpb.rawFiducials[0].distToCamera) bp = bpb;
+                else bp = bpa;
 
-            //System.out.println("Limelight-a X: " + bpa.pose.getX() + ", Y: " + bpa.pose.getY());
-            //System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
-            double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
-            this.addVisionMeasurement(bp.pose, bp.timestampSeconds, MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 99999));
+                //System.out.println("Limelight-a X: " + bpa.pose.getX() + ", Y: " + bpa.pose.getY());
+                //System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
+                double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
+                this.addVisionMeasurement(bp.pose, bp.timestampSeconds, MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 99999));
 
+            }
         }
-    }
 
         private void startSimThread() {
             m_lastSimTime = Utils.getCurrentTimeSeconds();
@@ -398,10 +398,9 @@ public final class Drive implements Subsystem {
             return super.samplePoseAt(Utils.fpgaToCurrentTime(timestampSeconds));
         }
 
-
-        public void followTrajectory(SwerveSample sample) {
-                // Get the current pose of the robot
-            Pose2d pose = this.getState().Pose;
+        public void followTrajectoryAsIfBlue(SwerveSample sample) {
+            // Get the current pose of the robot
+            Pose2d pose = getPoseAsIfBlue();
             // Generate the next speeds for the robot
             ChassisSpeeds speeds = new ChassisSpeeds(
                 sample.vx + SwerveConstants.xController.calculate(pose.getX(), sample.x),

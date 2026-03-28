@@ -125,19 +125,11 @@ public final class Launcher extends SubsystemBase {
         // Don't configure can coder offsets here; enter offsets into c11 and c12 offset constants
         yaw12cancoder.getConfigurator().apply(new MagnetSensorConfigs().withMagnetOffset(0).withAbsoluteSensorDiscontinuityPoint(1));
         yaw11cancoder.getConfigurator().apply(new MagnetSensorConfigs().withMagnetOffset(0).withAbsoluteSensorDiscontinuityPoint(1));
-
-        DriverStation.getAlliance().ifPresentOrElse((color) -> {
-            shootTarget = new Translation3d(color == Alliance.Blue ? 4.625594 : 11.915394, 4.034536, 1.8288);
-            hurlTargetXZ = new Translation2d(color == Alliance.Blue ? 3.048 : 13.492988, 1.016);
-            blueAlliance = color == Alliance.Blue;
-        }, () -> {
-            throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
-        });
-
         yaw11cancoder.getAbsolutePosition().waitForUpdate(0.25);
         yaw12cancoder.getAbsolutePosition().waitForUpdate(0.25);
         yawMotor.setPosition(-calcYawDegrees() * LauncherConstants.yawGearRatio / 360.);
 
+        setAlliance();
         forcePitchDown();
         setPitch(LauncherConstants.pitchBounds.getSecond()); // zero at min pitch
         setLaunchMotorConfig(); // separate function to allow for smart dashboard pid tuning
@@ -145,6 +137,16 @@ public final class Launcher extends SubsystemBase {
         setYawMotorConfig();
         setYaw(0);
         initTrimmer();
+    }
+
+    private void setAlliance() {
+        DriverStation.getAlliance().ifPresentOrElse((color) -> {
+            shootTarget = new Translation3d(color == Alliance.Blue ? 4.625594 : 11.915394, 4.034536, 1.8288);
+            hurlTargetXZ = new Translation2d(color == Alliance.Blue ? 3.048 : 13.492988, 1.016);
+            blueAlliance = color == Alliance.Blue;
+        }, () -> {
+            throw new IllegalArgumentException("Is this code happening too early and the alliance color isn't available yet?");
+        });
     }
 
     private void setLaunchMotorConfig() {
@@ -221,8 +223,6 @@ public final class Launcher extends SubsystemBase {
     private double getPitch() {
         return pitchMotor.getPosition().getValueAsDouble() * LauncherConstants.pitchGearRatio + LauncherConstants.pitchBounds.getFirst();
     }
-
-    
     
     private void setPitch(double degrees) {
         System.out.println("SetPitch: " + degrees);
@@ -467,6 +467,8 @@ public final class Launcher extends SubsystemBase {
 
     @Override
     public void periodic() {
+        setAlliance();
+
         // Run feeder spinner at slow rate when intake is spinning (unless we're firing)
         if (mode != Mode.OFF) { 
             prepToShoot();

@@ -47,7 +47,7 @@ public class LauncherConstants {
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0; // (deg) to offset pitch if shooting based on distance is missing
-        public static final double kRPMScaleFactor = .80; // (m/s) scale to offset velocity if shooting based on distance is missing
+        public static final double kRPMScaleFactor = .82; // (m/s) scale to offset velocity if shooting based on distance is missing
         public static final double projectionTime = 0.1; // seconds into the future to predict position
         public static final double kRPMTolerance = 0.05; // tolerance when checking flywheel speed is within range
         public static final double maxYawAdjustment = 10; // degrees to adjust yaw to compensate tangential velocity

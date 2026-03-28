@@ -37,7 +37,6 @@ public final class RobotContainer {
     private final Trimmer trimmer = Trimmer.getInstance();
     public static AutoFactory autoFactory;
 
-
     // // Test toggles
     // private boolean launcherTestEnabled = false;
     // private boolean feederRollerTestEnabled = false;
@@ -117,9 +116,9 @@ public final class RobotContainer {
         // Elevator is open-loop from operator left stick Y in Robot.teleopPeriodic (Climber.driveFromStick).
 
         autoFactory = new AutoFactory(
-            drivetrain::getPose, // A function that returns the current robot pose
-            drivetrain::resetPose, // A function that resets the current robot pose to the provided Pose2d
-            drivetrain::followTrajectory, // The drive subsystem trajectory follower
+            drivetrain::getPoseAsIfBlue, // A function that returns the current robot pose
+            drivetrain::resetPoseAsIfBlue, // A function that resets the current robot pose to the provided Pose2d
+            drivetrain::followTrajectoryAsIfBlue, // The drive subsystem trajectory follower
             false, // If alliance flipping should be enabled
             drivetrain // The drive subsystem
         );

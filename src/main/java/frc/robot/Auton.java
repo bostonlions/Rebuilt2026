@@ -7,17 +7,22 @@ import choreo.auto.AutoFactory;
 
 import static java.util.Map.entry;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Trimmer;
+import frc.robot.subsystems.Drive.Drivetrain;
 import frc.robot.subsystems.launcher.Launcher;
 
 public final class Auton extends SubsystemBase {
@@ -29,23 +34,21 @@ public final class Auton extends SubsystemBase {
     private static final Map<String, Command> commands = Map.ofEntries(
         entry("0: None", new PrintCommand("Autonomous started with no command chosen")),
         entry("1: Shoot from left corner of hub", Commands.sequence(
-            new InstantCommand(() -> launcher.simpleToggle(1475, 90-15, -45)),
+            new InstantCommand(() -> launcher.simpleToggle(1525, 80, -45)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
         )),
         entry("2: Shoot from right corner of hub", Commands.sequence(
-            new InstantCommand(() -> launcher.simpleToggle(1475, 90-15, 45)),
+            new InstantCommand(() -> launcher.simpleToggle(1525, 80, 45)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
         )),
-        entry("3: Test path", Commands.sequence(
-            
-            followPathCommand("Testing")
-        )),
+        entry("3: Test path", zeroGyroReversed().andThen(followPathCommand("Testing"))),
         entry("4: Climb From Right", Commands.sequence(
-            new InstantCommand(() -> launcher.simpleToggle(1475, 90-15, 45)),
+            zeroGyroReversed(),
+            new InstantCommand(() -> launcher.simpleToggle(1525, 80, 225)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle()),
@@ -55,6 +58,7 @@ public final class Auton extends SubsystemBase {
             climber.elevatorDown()
         )),
         entry("5: Mid and Back", new ParallelCommandGroup(
+            zeroGyro(),
             followPathCommand("GoToMidAndBack"),
             new WaitCommand(1).andThen(
                 new InstantCommand(() -> intake.setExtension(true), intake),
@@ -66,8 +70,18 @@ public final class Auton extends SubsystemBase {
         ).andThen(() -> launcher.setMode(Launcher.Mode.FIRE), launcher))
     );
 
-    private static Command followPathCommand(String path) {
+    private static SequentialCommandGroup followPathCommand(String path) {
         return autoFactory.resetOdometry(path).andThen(autoFactory.trajectoryCmd(path));
+    }
+
+    private static InstantCommand zeroGyroReversed() {
+        return new InstantCommand(() -> Drivetrain.getInstance().resetRotation(new Rotation2d(
+            DriverStation.getAlliance().get() == Alliance.Blue ? Math.PI : 0)));
+    }
+
+    private static InstantCommand zeroGyro() {
+        return new InstantCommand(() -> Drivetrain.getInstance().resetRotation(new Rotation2d(
+            DriverStation.getAlliance().get() == Alliance.Blue ? 0 : Math.PI)));
     }
     
     public static Auton getInstance() {
