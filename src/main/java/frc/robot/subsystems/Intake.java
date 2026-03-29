@@ -24,10 +24,7 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.util.sendable.SendableBuilder;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.ParallelRaceGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
 
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.ResetMode;
@@ -57,7 +54,8 @@ public final class Intake extends SubsystemBase {
     private final boolean spinnerIsKraken;
 
     private final double inPosition = 0.25; //.35 is flush with bumper, .1 is flush with hard stop
-    private final double partialIn = 0.7; // for agitation
+    private final double partialOut = 0.37; // for agitation
+    private final double partialIn = 0.8; // for agitation
     private final double outPosition = 0.9355;
     private final double intakeSpeed = 0.48;
 
@@ -70,7 +68,7 @@ public final class Intake extends SubsystemBase {
         spinnerIsKraken = INTAKE_SPINNER_USE_KRAKEN;
 
         extendCANcoder.getConfigurator().apply(new CANcoderConfiguration().withMagnetSensor(new MagnetSensorConfigs()
-            .withMagnetOffset(0.118) // add 0.1 to measured value, and then add 0.1 to in and out positions; offset all values by 0.1
+            .withMagnetOffset(0.253) // add 0.1 to this value, and then add 0.1 to in and out positions; offset all values by 0.1
             .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
             .withAbsoluteSensorDiscontinuityPoint(1)));
 
@@ -136,15 +134,31 @@ public final class Intake extends SubsystemBase {
         setSpinner(false);
     }
 
-    @Override
-    public void periodic() {}
+    private boolean agitating = false; // start not agitating
+    private double agitationRateMS = 100;
 
-    public ParallelRaceGroup autoAgitateCmd() {
-        return new InstantCommand(() -> extendMotor.setControl(new MotionMagicDutyCycle(partialIn)), this).andThen(
-            new WaitCommand(0.25),
-            new InstantCommand(() -> setExtension(true), this),
-            new WaitCommand(0.25)
-        ).repeatedly().withTimeout(5);
+    /** Returns agitation state incase we need it */
+    public boolean toggleAgitation() {
+        agitating = !agitating;
+        return agitating;
+    }
+
+    /** Returns agitation state incase we need it */
+    public boolean setAgitation(boolean agitating) {
+        this.agitating = agitating;
+        return agitating;
+    }
+
+    @Override
+    public void periodic() {
+        if (agitating) {
+            if (System.currentTimeMillis() % (2 * agitationRateMS) < agitationRateMS) {
+                setExtension(extended);
+                agitating = true;
+            } else {
+                extendMotor.setControl(new MotionMagicDutyCycle(extended ? partialIn : partialOut));
+            }
+        }
     }
 
     public boolean isRetracted() {
@@ -155,13 +169,14 @@ public final class Intake extends SubsystemBase {
     private boolean extended = false; // extender starts in
 
     public void setExtension(final boolean extend) {
+        agitating = false;
         extended = extend;
         extendMotor.setControl(new MotionMagicDutyCycle(extend ? outPosition : inPosition));
     }
 
-    public void toggleExtension() {
-        setExtension(!extended);
-    }
+    // public void toggleExtension() {
+    //     setExtension(!extended);
+    // }
 
     private boolean spinning = false; // not spinning initially
 

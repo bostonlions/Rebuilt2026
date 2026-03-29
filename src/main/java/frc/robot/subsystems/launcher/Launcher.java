@@ -1,6 +1,5 @@
 package frc.robot.subsystems.launcher;
 
-// import frc.robot.subsystems.launcher.LauncherConstants;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MagnetSensorConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
@@ -10,12 +9,14 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TorqueCurrentConfigs;
 import com.ctre.phoenix6.configs.VoltageConfigs;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
 import com.ctre.phoenix6.controls.MotionMagicVelocityDutyCycle;
 import com.ctre.phoenix6.controls.StaticBrake;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
 
@@ -33,6 +34,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import edu.wpi.first.math.MathUtil;
+
 import frc.robot.Robot;
 import frc.robot.Robot.Ports;
 import frc.robot.subsystems.Drive;
@@ -78,6 +80,7 @@ public final class Launcher extends SubsystemBase {
     private double pitchTorque; // member variable for use in smart dashboard
 
     private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBusJustice);
+    private final TalonFX launchMotorFollower = new TalonFX(Ports.LAUNCHER_FOLLOWER, kCANBusJustice);
     private final TalonFX pitchMotor = new TalonFX(Ports.PITCH_MOTOR, kCANBusJustice);
     private final TalonFX yawMotor = new TalonFX(Ports.YAW_MOTOR, kCANBusJustice);
     private final CANcoder yaw12cancoder = new CANcoder(Ports.YAW_CANCODER_12, kCANBusJustice);
@@ -153,7 +156,7 @@ public final class Launcher extends SubsystemBase {
 
     private void setLaunchMotorConfig() {
         launchMotor.getConfigurator().apply(new TalonFXConfiguration()
-            .withSlot0(new Slot0Configs().withKP(launchP).withKI(launchI).withKD(0).withKV(0.01035))
+            .withSlot0(new Slot0Configs().withKP(launchP).withKI(launchI).withKD(0).withKV(0.025))
             .withMotionMagic(new MotionMagicConfigs()
                 .withMotionMagicCruiseVelocity(60)
                 .withMotionMagicAcceleration(100)
@@ -162,6 +165,17 @@ public final class Launcher extends SubsystemBase {
                 .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
             .withTorqueCurrent(new TorqueCurrentConfigs()
                 .withPeakForwardTorqueCurrent(Amps.of(30)).withPeakReverseTorqueCurrent(Amps.of(-30))));
+        launchMotorFollower.getConfigurator().apply(new TalonFXConfiguration()
+            .withSlot0(new Slot0Configs().withKP(launchP).withKI(launchI).withKD(0).withKV(0.025))
+            .withMotionMagic(new MotionMagicConfigs()
+                .withMotionMagicCruiseVelocity(60)
+                .withMotionMagicAcceleration(100)
+                .withMotionMagicJerk(1000))
+            .withVoltage(new VoltageConfigs()
+                .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
+            .withTorqueCurrent(new TorqueCurrentConfigs()
+                .withPeakForwardTorqueCurrent(Amps.of(30)).withPeakReverseTorqueCurrent(Amps.of(-30))));
+        launchMotorFollower.setControl(new Follower(launchMotor.getDeviceID(), MotorAlignmentValue.Opposed));
     }
 
     private void setPitchMotorConfig() {
@@ -218,12 +232,8 @@ public final class Launcher extends SubsystemBase {
         return 360 * MathUtil.inputModulus(cc.getAbsolutePosition().getValue().in(Units.Rotations) - ccOffset, 0, 1);
     }
 
-    /**
-     * 
-     * @return pitch in degrees
-     */
-    private double getPitch() {
-        return pitchMotor.getPosition().getValueAsDouble() * LauncherConstants.pitchGearRatio + LauncherConstants.pitchBounds.getFirst();
+    private double getPitch() { // degrees
+        return -pitchMotor.getPosition().getValueAsDouble() * LauncherConstants.pitchGearRatio + LauncherConstants.pitchBounds.getSecond();
     }
 
     private void setPitch(double degrees) {
@@ -240,66 +250,66 @@ public final class Launcher extends SubsystemBase {
      * @param degrees desired turret yaw in degrees (robot-relative), same convention as {@link MathUtil#inputModulus}.
      */
     private void setYaw(double rawDegrees) {
-    final double min = LauncherConstants.yawBounds.getFirst(); // e.g., -90
-    final double max = LauncherConstants.yawBounds.getSecond(); // e.g., 230
-    final double pastTol = LauncherConstants.kTurretLimitPastHoldDeg;
-    final double current = calcYawDegrees();
+        final double min = LauncherConstants.yawBounds.getFirst(); // e.g., -90
+        final double max = LauncherConstants.yawBounds.getSecond(); // e.g., 230
+        final double pastTol = LauncherConstants.kTurretLimitPastHoldDeg;
+        final double current = calcYawDegrees();
 
-    // 1. Calculate the shortest physical path safely
-    double error = MathUtil.inputModulus(rawDegrees - current, -180.0, 180.0);
-    double target = current + error;
+        // 1. Calculate the shortest physical path safely
+        double error = MathUtil.inputModulus(rawDegrees - current, -180.0, 180.0);
+        double target = current + error;
 
-    // 2. Wrap-around logic & Latching (Replaces your `if (degrees > max...)`)
-    // If the shortest path hits a limit, swing the long way around and latch the profile
-    if (target > max) {
-        if (target - 360.0 >= min) {
-            target -= 360.0;
-            m_yawLongPathProfileLatched = true;
+        // 2. Wrap-around logic & Latching (Replaces your `if (degrees > max...)`)
+        // If the shortest path hits a limit, swing the long way around and latch the profile
+        if (target > max) {
+            if (target - 360.0 >= min) {
+                target -= 360.0;
+                m_yawLongPathProfileLatched = true;
+            }
+        } else if (target < min) {
+            if (target + 360.0 <= max) {
+                target += 360.0;
+                m_yawLongPathProfileLatched = true;
+            }
         }
-    } else if (target < min) {
-        if (target + 360.0 <= max) {
-            target += 360.0;
-            m_yawLongPathProfileLatched = true;
-        }
-    }
 
-    // 3. Limit Holding Logic (Directly from your snippet, but using 'target')
-    final boolean atHighLimit = current >= max - pastTol;
-    final boolean atLowLimit = current <= min + pastTol;
-    
-    final boolean holdHigh = atHighLimit && target > max && target <= max + pastTol;
-    final boolean holdLow = atLowLimit && target < min && target >= min - pastTol;
-
-    if (holdHigh || holdLow) {
-        m_yawLongPathProfileLatched = false;
-        ensureYawMotionMagicScale(1.0);
+        // 3. Limit Holding Logic (Directly from your snippet, but using 'target')
+        final boolean atHighLimit = current >= max - pastTol;
+        final boolean atLowLimit = current <= min + pastTol;
         
-        // CRITICAL FIX: We clamp, but DO NOT use inputModulus here!
-        double holdDeg = MathUtil.clamp(current, min, max);
-        yawMotor.setControl(new MotionMagicDutyCycle(-holdDeg * LauncherConstants.yawGearRatio / 360.0));
-        return;
+        final boolean holdHigh = atHighLimit && target > max && target <= max + pastTol;
+        final boolean holdLow = atLowLimit && target < min && target >= min - pastTol;
+
+        if (holdHigh || holdLow) {
+            m_yawLongPathProfileLatched = false;
+            ensureYawMotionMagicScale(1.0);
+            
+            // CRITICAL FIX: We clamp, but DO NOT use inputModulus here!
+            double holdDeg = MathUtil.clamp(current, min, max);
+            yawMotor.setControl(new MotionMagicDutyCycle(-holdDeg * LauncherConstants.yawGearRatio / 360.0));
+            return;
+        }
+
+        // 4. Final safety clamp in case the target is mathematically impossible
+        target = MathUtil.clamp(target, min, max);
+
+        // 5. Arrival check to unlatch the profile
+        // CRITICAL FIX: Use linear distance (target - current), not circular modulus!
+        // If you use modulus here, it unlatches halfway through a 360-degree swing.
+        double errDeg = target - current; 
+        
+        if (m_yawLongPathProfileLatched && Math.abs(errDeg) < LauncherConstants.kYawLongPathArriveEpsilonDeg) {
+            m_yawLongPathProfileLatched = false;
+        }
+
+        // 6. Apply your Motion Magic Scale
+        ensureYawMotionMagicScale(
+            m_yawLongPathProfileLatched ? LauncherConstants.kYawLongPathMotionMagicScale : 1.0
+        );
+
+        // 7. Command the motor
+        yawMotor.setControl(new MotionMagicDutyCycle(-target * LauncherConstants.yawGearRatio / 360.0));
     }
-
-    // 4. Final safety clamp in case the target is mathematically impossible
-    target = MathUtil.clamp(target, min, max);
-
-    // 5. Arrival check to unlatch the profile
-    // CRITICAL FIX: Use linear distance (target - current), not circular modulus!
-    // If you use modulus here, it unlatches halfway through a 360-degree swing.
-    double errDeg = target - current; 
-    
-    if (m_yawLongPathProfileLatched && Math.abs(errDeg) < LauncherConstants.kYawLongPathArriveEpsilonDeg) {
-        m_yawLongPathProfileLatched = false;
-    }
-
-    // 6. Apply your Motion Magic Scale
-    ensureYawMotionMagicScale(
-        m_yawLongPathProfileLatched ? LauncherConstants.kYawLongPathMotionMagicScale : 1.0
-    );
-
-    // 7. Command the motor
-    yawMotor.setControl(new MotionMagicDutyCycle(-target * LauncherConstants.yawGearRatio / 360.0));
-}
 
     /**
      * Calculates targeting variables using WPILib Geometry and queries the Polynomial Surface.
@@ -364,9 +374,8 @@ public final class Launcher extends SubsystemBase {
         // 8. Compensate for RPM drop when the ball is launched (this is not used)
         adjustedRPM = kinematics.getAdjustedFlywheelRPM(targetRPM);
 
-
-        launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60.0));
-        setYaw(yawTarget);
+        launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60 * LauncherConstants.launchGearRatio));
+        setYaw(yawTarget);                                                            // TODO: should divide by gear ratio instead
         
         double currentRPM = launchMotor.getVelocity().getValueAsDouble() * 60.0;
         shooterSpeedReady = targetRPM > 0 && Math.abs(currentRPM - targetRPM) < (targetRPM * LauncherConstants.kRPMTolerance);
@@ -627,9 +636,9 @@ public final class Launcher extends SubsystemBase {
         );
         trimmer.add(
             "Launcher PID",
-            "Yaw P",
-            () -> yawP,
-            (up) -> {yawP = Trimmer.increment(yawP, 0.001, 0.2, up); setYawMotorConfig();}
+            "Launcher P",
+            () -> launchP,
+            (up) -> {launchP = Trimmer.increment(launchP, 0.001, 0.2, up); setLaunchMotorConfig();}
         );
         trimmer.add(
             "Launcher PID",

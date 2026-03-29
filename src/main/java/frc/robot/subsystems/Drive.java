@@ -439,8 +439,6 @@ public final class Drive implements Subsystem {
             }
             resetPose(pose);
         }
-
-
     }
 
     public static final class SwerveConstants {

@@ -24,6 +24,7 @@ import frc.robot.subsystems.Climber;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Trimmer;
 import frc.robot.subsystems.Drive.Drivetrain;
+import frc.robot.subsystems.Drive.SwerveConstants;
 import frc.robot.subsystems.launcher.Launcher;
 
 public final class Auton extends SubsystemBase {
@@ -35,13 +36,13 @@ public final class Auton extends SubsystemBase {
     private static final Map<String, Command> commands = Map.ofEntries(
         entry("0: None", new PrintCommand("Autonomous started with no command chosen")),
         entry("1: Shoot from left corner of hub", Commands.sequence(
-            new InstantCommand(() -> launcher.simpleToggle(1525, 80, -45)),
+            new InstantCommand(() -> launcher.simpleToggle(1776, 75, -45)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
         )),
         entry("2: Shoot from right corner of hub", Commands.sequence(
-            new InstantCommand(() -> launcher.simpleToggle(1525, 80, 45)),
+            new InstantCommand(() -> launcher.simpleToggle(1776, 75, 45)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle())
@@ -49,29 +50,45 @@ public final class Auton extends SubsystemBase {
         entry("3: Test path", zeroGyroReversed().andThen(followPathCommand("Testing"))),
         entry("4: Climb From Right", Commands.sequence(
             zeroGyroReversed(),
-            new InstantCommand(() -> launcher.simpleToggle(1525, 80, 225)),
+            new InstantCommand(() -> launcher.simpleToggle(1776, 75, 225)),
             sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),
             new InstantCommand(() -> intake.setSpinner(false), intake), sleep(2),
             new InstantCommand(() -> launcher.simpleToggle()),
             followPathCommand("ClimbFromRightSetup"),
             climber.elevatorUp(),
-            followPathCommand("ClimbFromRightDriveIn"),
+            followPathCommand("ClimbFromRightDriveIn").andThen(() -> Drivetrain.getInstance().setControl(SwerveConstants.brake)),
+            new WaitCommand(0.06),
             climber.elevatorDown()
         )),
-        entry("5: Mid and Back", new ParallelCommandGroup(
-            zeroGyro(),
-            followPathCommand("GoToMidAndBack"),
+        entry("5: Mid and Back Right", new ParallelCommandGroup(
+            zeroGyro(),                                                                                // brake to prevent drifting
+            followPathCommand("GoToMidAndBack").andThen(() -> Drivetrain.getInstance().setControl(SwerveConstants.brake)),
             new WaitCommand(1).andThen(
                 new InstantCommand(() -> intake.setExtension(true), intake),
                 new InstantCommand(() -> intake.toggleSpin(), intake),
                 new WaitCommand(3),
-                new InstantCommand(() -> intake.toggleSpin(), intake),
-                new InstantCommand(() -> intake.setExtension(false), intake)
+                new InstantCommand(() -> intake.toggleSpin(), intake)
             )
         ).andThen(new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY), launcher),
             new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE), launcher),
             new InstantCommand(() -> intake.toggleSpin(), intake),
-            intake.autoAgitateCmd(),
+            new InstantCommand(() -> intake.setAgitation(true), intake),
+            new WaitCommand(7),
+            new InstantCommand(() -> intake.toggleSpin(), intake))),
+        entry("6: Mid and Back Left", new ParallelCommandGroup(
+            zeroGyro(),                                                                                // brake to prevent drifting
+            followPathCommand("GoToMidAndBack_Left").andThen(() -> Drivetrain.getInstance().setControl(SwerveConstants.brake)),
+            new WaitCommand(1).andThen(
+                new InstantCommand(() -> intake.setExtension(true), intake),
+                new InstantCommand(() -> intake.toggleSpin(), intake),
+                new WaitCommand(3),
+                new InstantCommand(() -> intake.toggleSpin(), intake)
+            )
+        ).andThen(new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY), launcher),
+            new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE), launcher),
+            new InstantCommand(() -> intake.toggleSpin(), intake),
+            new InstantCommand(() -> intake.setAgitation(true), intake),
+            new WaitCommand(7),
             new InstantCommand(() -> intake.toggleSpin(), intake)))
     );
 

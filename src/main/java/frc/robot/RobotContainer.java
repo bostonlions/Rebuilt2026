@@ -32,7 +32,7 @@ public final class RobotContainer {
     public static final ControlBoard controller = ControlBoard.getInstance();
     public final Drivetrain drivetrain = Drivetrain.getInstance();
     public final Climber climber;
-    private final Intake intake;
+    public final Intake intake;
     private final Launcher launcher;
     private final Trimmer trimmer = Trimmer.getInstance();
     public static AutoFactory autoFactory;
@@ -74,11 +74,15 @@ public final class RobotContainer {
             .onTrue(new InstantCommand(() -> intake.setExtension(false), intake));
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.LB))
             .onTrue(new InstantCommand(() -> intake.toggleSpin(), intake));
+        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.L_JOYSTICK))
+            .onTrue(new InstantCommand(() -> intake.toggleAgitation(), intake));
 
         launcher = Launcher.getInstance();
         SmartDashboard.putData(launcher);
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.B))
             .onTrue(new InstantCommand(() -> launcher.forcePitchDown(), launcher));
+        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.A))
+        //     .onTrue(new InstantCommand(() -> launcher.simpleToggle(2500, 60), launcher));
         // --- SHOOTING ---
         // Controlls:
         // X: Simple toggle shooter / Shoot

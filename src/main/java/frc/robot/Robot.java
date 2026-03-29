@@ -88,6 +88,7 @@ public final class Robot extends TimedRobot {
 
     @Override
     public void teleopInit() {
+        m_robotContainer.intake.setAgitation(false);
 
         Launcher.getInstance().forcePitchDown();
         
@@ -153,6 +154,7 @@ public final class Robot extends TimedRobot {
 
         /** Launcher: main flywheel */
         public static final int LAUNCHER = 49;
+        public static final int LAUNCHER_FOLLOWER = 55;
         public static final int PITCH_MOTOR = 50; 
         public static final int PITCH_CANCODER = 38; 
         public static final int YAW_MOTOR = 40;
