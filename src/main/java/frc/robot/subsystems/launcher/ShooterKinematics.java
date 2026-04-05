@@ -31,9 +31,8 @@ public class ShooterKinematics {
         // 1. Convert Ball Exit Velo to Wheel Surface Speed (V_wheel = 2 * V_ball)
         double wheelSurfaceVelo = exitVeloMetersPerSec * 2.0;
 
-        // 2. Convert to RPM for 5" Wheel
-        // Circumference = 5 * pi * 0.0254 meters
-        double wheelCircumference = 5.0 * 0.0254 * Math.PI;
+        // 2. Convert to RPM with Wheel Diameter Converted to Meters
+        double wheelCircumference = 5.2 * 0.0254 * Math.PI;
         double rpm = (wheelSurfaceVelo / wheelCircumference)*60;
 
         return lib.Util.clamp(rpm * LauncherConstants.kRPMScaleFactor, 0, 6065);

@@ -296,7 +296,7 @@ public final class Launcher extends SubsystemBase {
         // 5. Arrival check to unlatch the profile
         // CRITICAL FIX: Use linear distance (target - current), not circular modulus!
         // If you use modulus here, it unlatches halfway through a 360-degree swing.
-        double errDeg = target - current; 
+        double errDeg = target - current;
         
         if (m_yawLongPathProfileLatched && Math.abs(errDeg) < LauncherConstants.kYawLongPathArriveEpsilonDeg) {
             m_yawLongPathProfileLatched = false;
@@ -472,7 +472,6 @@ public final class Launcher extends SubsystemBase {
     }
 
     public void forcePitchDown() {
-        if (forcingDown) return;
         forcingDown = true;
         pitchMotor.setControl(new DutyCycleOut(-0.1));
     }

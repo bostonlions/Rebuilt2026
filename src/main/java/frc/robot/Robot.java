@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.LimelightHelpers;
+import frc.robot.subsystems.Drive.SwerveConstants;
 import frc.robot.subsystems.launcher.Launcher;
 
 import edu.wpi.first.wpilibj.DriverStation;
@@ -22,7 +23,7 @@ import com.ctre.phoenix6.hardware.Pigeon2;
 public final class Robot extends TimedRobot {
     public static final CANBus kCANBusGronk = new CANBus(Ports.CANBUS_DRIVE);
     public static final CANBus kCANBusJustice = new CANBus(Ports.CANBUS_OPS);
-    /** Native roboRIO CAN (empty bus name in Phoenix 6). */
+    /** Native roboRIO CAN (empty bus name in Phoenix 6) */
     public static final CANBus kCANBusRio = new CANBus("");
     public static final Pigeon2 pigeon = new Pigeon2(Ports.PIGEON, kCANBusGronk);
     private static final Timer clock = new Timer();
@@ -72,6 +73,7 @@ public final class Robot extends TimedRobot {
 
     @Override
     public void autonomousInit() {
+        SwerveConstants.headingController.enableContinuousInput(-Math.PI, Math.PI); // prevent auto hitting 360s
 
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
         if (m_autonomousCommand != null) CommandScheduler.getInstance().schedule(m_autonomousCommand);
@@ -142,7 +144,7 @@ public final class Robot extends TimedRobot {
         public static final String CANBUS_DRIVE = "Baby Gronk";
         public static final String CANBUS_OPS = "Big Justice";
 
-        /** Driver = 0, Operator = 1 (USB/DH port) */
+        /** Driver = 0; Operator = 1 (USB/DH port, set in Driver Station) */
         public static final int DRIVER_CONTROL = 0;
         public static final int OPERATOR_CONTROL = 1;
 

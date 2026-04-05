@@ -81,7 +81,7 @@ public final class Auton extends SubsystemBase {
             new WaitCommand(1).andThen(
                 new InstantCommand(() -> intake.setExtension(true), intake),
                 new InstantCommand(() -> intake.toggleSpin(), intake),
-                new WaitCommand(3),
+                new WaitCommand(4.3),
                 new InstantCommand(() -> intake.toggleSpin(), intake)
             )
         ).andThen(new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY), launcher),

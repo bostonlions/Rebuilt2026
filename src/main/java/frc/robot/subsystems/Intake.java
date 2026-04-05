@@ -31,7 +31,6 @@ import com.revrobotics.ResetMode;
 import com.revrobotics.PersistMode;
 
 import static frc.robot.Robot.kCANBusJustice;
-import static frc.robot.Robot.kCANBusRio;
 
 import frc.robot.Robot.Ports;
 
@@ -42,6 +41,7 @@ public final class Intake extends SubsystemBase {
      * Only the selected motor is constructed; recompile after changing.
      */
     private static final boolean INTAKE_SPINNER_USE_KRAKEN = true;
+    private final double intakeSpeedNeo = 0.48;
 
     private static Intake instance = null;
     private final TalonFX extendMotor = new TalonFX(Ports.INTAKE_EXTEND, kCANBusJustice);
@@ -53,11 +53,10 @@ public final class Intake extends SubsystemBase {
     private final DutyCycleOut krakenSpinDuty;
     private final boolean spinnerIsKraken;
 
-    private final double inPosition = 0.25; //.35 is flush with bumper, .1 is flush with hard stop
+    private final double inPosition = 0.27; //.35 is flush with bumper, .1 is flush with hard stop
     private final double partialOut = 0.37; // for agitation
     private final double partialIn = 0.8; // for agitation
-    private final double outPosition = 0.9355;
-    private final double intakeSpeed = 0.48;
+    private final double outPosition = 0.95; // can't exceed one
 
     public static Intake getInstance() {
         if (instance == null) instance = new Intake();
@@ -68,7 +67,7 @@ public final class Intake extends SubsystemBase {
         spinnerIsKraken = INTAKE_SPINNER_USE_KRAKEN;
 
         extendCANcoder.getConfigurator().apply(new CANcoderConfiguration().withMagnetSensor(new MagnetSensorConfigs()
-            .withMagnetOffset(0.253) // add 0.1 to this value, and then add 0.1 to in and out positions; offset all values by 0.1
+            .withMagnetOffset(0.32)
             .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
             .withAbsoluteSensorDiscontinuityPoint(1)));
 
@@ -76,7 +75,7 @@ public final class Intake extends SubsystemBase {
             spinMotorNeo = null;
             krakenBrake = new StaticBrake();
             krakenSpinDuty = new DutyCycleOut(0.75);
-            spinMotorKraken = new TalonFX(Ports.INTAKE_SPIN, kCANBusRio);
+            spinMotorKraken = new TalonFX(Ports.INTAKE_SPIN, kCANBusJustice);
             spinMotorKraken.getConfigurator().apply(new TalonFXConfiguration()
                 .withCurrentLimits(new CurrentLimitsConfigs()
                     .withSupplyCurrentLimitEnable(true)
@@ -185,7 +184,7 @@ public final class Intake extends SubsystemBase {
         if (spinnerIsKraken) {
             spinMotorKraken.setControl(spin ? krakenSpinDuty : krakenBrake);
         } else {
-            if (spin) spinMotorNeo.set(intakeSpeed);
+            if (spin) spinMotorNeo.set(intakeSpeedNeo);
             else spinMotorNeo.stopMotor();
         }
     }

@@ -6,8 +6,8 @@ import edu.wpi.first.math.geometry.Translation2d;
 public class LauncherConstants {
         // --- Turret & Yaw Constants ---
         public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-90.0, 230.0); // in degrees, maximum is like -100 - 260 but I make it less bc the wire management was breaking
-        public static final double c11Offset = 0.013; // 11-tooth cancoder value at 0 degrees
-        public static final double c12Offset = 0.035; // 12-tooth cancoder value at 0 degrees
+        public static final double c11Offset = 0.01977; // 11-tooth cancoder value at 0 degrees
+        public static final double c12Offset = 0.0302; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
         public static final double launchGearRatio = 0.6666666667;
         /** When near a soft limit, allow this much past the limit without re-homing via wrap (hold position). */
@@ -43,11 +43,11 @@ public class LauncherConstants {
         // --- Motor Duty Cycles ---
         public static final double kFeederSpinnerMotionDuty = 0.7; // for washing machine speed (can be .5)
         public static final double kFeederSpinnerWithIntakeRequestDuty = 0.1; // for washing machine speed when intaking
-        public static final double kFeederRollerMotionDuty = 0.7; // for feeder roller speed
+        public static final double kFeederRollerMotionDuty = 0.9; // for feeder roller speed
 
         // --- Shooter Kinematics & Polynomials ---
-        public static final double kPitchOffset = 3.0; // (deg) to offset pitch if shooting based on distance is missing
-        public static final double kRPMScaleFactor = 1.4; // (m/s) scale to offset velocity if shooting based on distance is missing
+        public static final double kPitchOffset = 0.0; // (deg) to offset pitch if shooting based on distance is missing
+        public static final double kRPMScaleFactor = 1.37; // (m/s) scale to offset velocity if shooting based on distance is missing
         public static final double projectionTime = 0.1; // seconds into the future to predict position
         public static final double kRPMTolerance = 0.05; // tolerance when checking flywheel speed is within range
         public static final double maxYawAdjustment = 10.0; // degrees to adjust yaw to compensate tangential velocity
@@ -56,7 +56,7 @@ public class LauncherConstants {
         public static final double[] HOOD_COEFFS = { 90.26, -13.17, 7.925, 1.086, 0.009438, 0.04452, -0.03133,
                 -0.02169, 0.08575, -0.08523 };
         // Exit Velocity (RPM) Coefficients (p00, p10, p01, p20, p11, p02, p30, p21, p12, p03)
-        public static final double[] VELO_COEFFS = { 5.505, 0.455, -0.2255, 0.05223, -0.1248, 0.04985, 0.003136, // -0.003136
+        public static final double[] VELO_COEFFS = { 5.505, 0.455, -0.2255, 0.05223, -0.1248, 0.04985, -0.003136, // -0.003136
                 0.005095, 0.000165, 0.004498 };
 
         // --- Geometry Constants ---
