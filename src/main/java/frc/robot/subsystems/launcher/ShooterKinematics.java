@@ -9,7 +9,6 @@ public class ShooterKinematics {
      * @param y Radial velocity of robot (m/s)
      * @param p Coefficients array
      */
-
     private double calculatePoly33(double x, double y, double[] p) {
         return p[0] + p[1] * x + p[2] * y + p[3] * Math.pow(x, 2) + p[4] * x * y + p[5] * Math.pow(y, 2)
                 + p[6] * Math.pow(x, 3) + p[7] * Math.pow(x, 2) * y + p[8] * x * Math.pow(y, 2) + p[9] * Math.pow(y, 3);
@@ -23,22 +22,15 @@ public class ShooterKinematics {
         return calculatePoly33(distance, radialVelo, LauncherConstants.VELO_COEFFS);
     }
 
-    // public double getTargetFlywheelRPM(double distance, double radialVelo) {
-    //     return getTargetFlywheelRPM(getExitVeloMetersPerSec(distance, radialVelo));
-    // }
-
     public double getTargetFlywheelRPM(double exitVeloMetersPerSec) {
-        // 1. Convert Ball Exit Velo to Wheel Surface Speed (V_wheel = 2 * V_ball)
-        double wheelSurfaceVelo = exitVeloMetersPerSec * 2.0;
-
-        // 2. Convert to RPM with Wheel Diameter Converted to Meters
-        double wheelCircumference = 5.2 * 0.0254 * Math.PI;
-        double rpm = (wheelSurfaceVelo / wheelCircumference)*60;
+        double wheelSurfaceVelo = exitVeloMetersPerSec * 2;
+        double wheelCircumference = LauncherConstants.wheelDiameter * Math.PI;
+        double rpm = (wheelSurfaceVelo / wheelCircumference) * 60;
 
         return lib.Util.clamp(rpm * LauncherConstants.kRPMScaleFactor, 0, 6065);
     }
 
     public double getAdjustedFlywheelRPM(double targetRPM) {
-        return targetRPM * 1; //TODO: fit a feedforward graph to this
+        return targetRPM * 1; // TODO: fit a feedforward graph to this
     }
 }
