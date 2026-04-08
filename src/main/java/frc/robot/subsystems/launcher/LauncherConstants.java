@@ -6,8 +6,8 @@ import edu.wpi.first.math.geometry.Translation2d;
 public class LauncherConstants {
         // --- Turret & Yaw Constants ---
         public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-90.0, 230.0); // in degrees, maximum is like -100 - 260 but I make it less bc the wire management was breaking
-        public static final double c11Offset = 0.01977; // 11-tooth cancoder value at 0 degrees
-        public static final double c12Offset = 0.0302; // 12-tooth cancoder value at 0 degrees
+        public static final double c11Offset = 0.01; // 11-tooth cancoder value at 0 degrees
+        public static final double c12Offset = 0.226; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
         public static final double launchGearRatio = 0.6666666667;
         /** When near a soft limit, allow this much past the limit without re-homing via wrap (hold position). */
@@ -26,7 +26,7 @@ public class LauncherConstants {
         public static final double minPitch = 90 - maxHoodAngle; // Ball exit angle relative to horizontal
         public static final double maxPitch = 90 - minHoodAngle; // 0 meaning a shot paralell to the floor and 90 meaning vertical shot
         public static final Pair<Double, Double> pitchBounds = new Pair<Double, Double>(minPitch, maxPitch); // min, max pitch -- in degrees
-        public static final double pitchGearRatio = (1 / 53.4545) * 360; // In pitch degrees per rotation because hood has a 1:53.4545 ratio. 
+        public static final double pitchGearRatio = (1 / 53.4545) * 360; // In pitch degrees per rotation because hood has a 1:53.4545 ratio.
         public static final double pitchForceTorque = -5;
         public static final double pitchForceVelocityLimit = -0.1;
         public static final double pitchLimitRotations = -0.25;

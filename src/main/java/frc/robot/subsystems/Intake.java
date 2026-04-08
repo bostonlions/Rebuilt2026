@@ -53,10 +53,10 @@ public final class Intake extends SubsystemBase {
     private final DutyCycleOut krakenSpinDuty;
     private final boolean spinnerIsKraken;
 
-    private final double inPosition = 0.27; //.35 is flush with bumper, .1 is flush with hard stop
-    private final double partialOut = 0.37; // for agitation
-    private final double partialIn = 0.8; // for agitation
-    private final double outPosition = 0.95; // can't exceed one
+    private final double inPosition = 0.086; //flush with bumper
+    private final double partialOut = 0.1; // for agitation (was .37)
+    private final double partialIn = 0.02; // for agitation (was .8_)
+    private final double outPosition = 0.685; // can't exceed one
 
     public static Intake getInstance() {
         if (instance == null) instance = new Intake();
