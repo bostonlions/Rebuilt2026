@@ -41,11 +41,18 @@ public final class Intake extends SubsystemBase {
      * Only the selected motor is constructed; recompile after changing.
      */
     private static final boolean INTAKE_SPINNER_USE_KRAKEN = true;
+    /**
+     * {@code true} = extend TalonFX only gets {@link StaticBrake}; no Motion Magic from triggers or agitation.
+     * Set to {@code false} when the mechanism is ready to move again.
+     */
+    private static final boolean EXTEND_MOTOR_DISABLED = true;
+
     private final double intakeSpeedNeo = 0.48;
 
     private static Intake instance = null;
     private final TalonFX extendMotor = new TalonFX(Ports.INTAKE_EXTEND, kCANBusJustice);
     private final CANcoder extendCANcoder = new CANcoder(15, kCANBusJustice);
+    private final StaticBrake extendIdleBrake = new StaticBrake();
 
     private final SparkFlex spinMotorNeo;
     private final TalonFX spinMotorKraken;
@@ -103,7 +110,7 @@ public final class Intake extends SubsystemBase {
         extendMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withCurrentLimits(new CurrentLimitsConfigs()
                 .withSupplyCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(30)
+                .withSupplyCurrentLimit(30) //was 30
                 .withSupplyCurrentLowerLimit(20)
                 .withSupplyCurrentLowerTime(0.1))
             .withSlot0(new Slot0Configs()
@@ -129,7 +136,11 @@ public final class Intake extends SubsystemBase {
         // so gets pushed up to near 1
         extendCANcoder.setPosition(MathUtil.inputModulus(extendCANcoder.getPosition().getValueAsDouble(), 0, 1));
 
-        setExtension(false);
+        if (EXTEND_MOTOR_DISABLED) {
+            extendMotor.setControl(extendIdleBrake);
+        } else {
+            setExtension(false);
+        }
         setSpinner(false);
     }
 
@@ -150,6 +161,9 @@ public final class Intake extends SubsystemBase {
 
     @Override
     public void periodic() {
+        if (EXTEND_MOTOR_DISABLED) {
+            return;
+        }
         if (agitating) {
             if (System.currentTimeMillis() % (2 * agitationRateMS) < agitationRateMS) {
                 setExtension(extended);
@@ -170,6 +184,10 @@ public final class Intake extends SubsystemBase {
     public void setExtension(final boolean extend) {
         agitating = false;
         extended = extend;
+        if (EXTEND_MOTOR_DISABLED) {
+            extendMotor.setControl(extendIdleBrake);
+            return;
+        }
         extendMotor.setControl(new MotionMagicDutyCycle(extend ? outPosition : inPosition));
     }
 

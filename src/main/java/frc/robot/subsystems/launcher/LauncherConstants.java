@@ -45,6 +45,18 @@ public class LauncherConstants {
         public static final double kFeederSpinnerWithIntakeRequestDuty = 0.1; // for washing machine speed when intaking
         public static final double kFeederRollerMotionDuty = 0.9; // for feeder roller speed
 
+        /**
+         * {@code true} = flywheel + feeder Talons are not driven by {@code prepToShoot}, periodic intake/FIRE sync,
+         * or {@link frc.robot.subsystems.launcher.Launcher#simpleToggle simpleToggle}; use operator A open-loop test
+         * (or set {@code false} for normal match code). Set {@code false} when done bench testing.
+         */
+        public static final boolean kIsolateLaunchAndFeederMotorsForTesting = true;
+
+        /** Operator A held: open-loop duties for feeder + launch test (follower uses {@code -kOperatorATestLaunchDuty}). */
+        public static final double kOperatorATestFeederSpinnerDuty = 0.75;  //.75
+        public static final double kOperatorATestFeederRollerDuty = 0.5; //.5
+        public static final double kOperatorATestLaunchDuty = 0.2;
+
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0.0; // (deg) to offset pitch if shooting based on distance is missing
         public static final double kRPMScaleFactor = 1.37; // (m/s) scale to offset velocity if shooting based on distance is missing

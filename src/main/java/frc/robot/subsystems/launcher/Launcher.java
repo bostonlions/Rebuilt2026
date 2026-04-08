@@ -110,6 +110,8 @@ public final class Launcher extends SubsystemBase {
     private boolean toggledOn = false;
     private boolean dynamicYaw;
     private boolean forcingDown = false;
+    /** While true, end of {@link #periodic()} overrides launch + feeder with operator-A open-loop duties. */
+    private boolean m_operatorAButtonDutyTest = false;
     /** Last Motion Magic scale applied to yaw (1.0 = normal, {@link LauncherConstants#kYawLongPathMotionMagicScale} = wrap path). */
     private double m_yawMotionMagicScale = Double.NaN;
     /**
@@ -141,6 +143,11 @@ public final class Launcher extends SubsystemBase {
         setPitchMotorConfig();
         setYawMotorConfig();
         setYaw(0);
+        if (LauncherConstants.kIsolateLaunchAndFeederMotorsForTesting) {
+            launchMotor.setControl(brake);
+            feeder_spinner.setControl(brake);
+            feeder_roller.setControl(brake);
+        }
         initTrimmer();
     }
 
@@ -374,7 +381,9 @@ public final class Launcher extends SubsystemBase {
         // 8. Compensate for RPM drop when the ball is launched (this is not used)
         adjustedRPM = kinematics.getAdjustedFlywheelRPM(targetRPM);
 
-        launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60 * LauncherConstants.launchGearRatio));
+        if (!LauncherConstants.kIsolateLaunchAndFeederMotorsForTesting) {
+            launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60 * LauncherConstants.launchGearRatio));
+        }
         setYaw(yawTarget);                                                            // TODO: should divide by gear ratio instead
         
         double currentRPM = launchMotor.getVelocity().getValueAsDouble() * 60.0;
@@ -389,8 +398,40 @@ public final class Launcher extends SubsystemBase {
     }
 
     private void setFeeder(boolean on) {
+        if (LauncherConstants.kIsolateLaunchAndFeederMotorsForTesting) {
+            if (!on) {
+                feeder_spinner.setControl(brake);
+                feeder_roller.setControl(brake);
+            }
+            return;
+        }
         feeder_spinner.setControl(on ? feederSpinnerMotionRequest : brake);
         feeder_roller.setControl(on ? feederRollerMotionRequest : brake);
+    }
+
+    /** Operator A: tune duties in {@link LauncherConstants} ({@code kOperatorATest*}). */
+    public void setOperatorAButtonDutyTest(boolean active) {
+        m_operatorAButtonDutyTest = active;
+        if (active) {
+            applyOperatorATestDuties();
+        } else {
+            stopOperatorATestAndRestoreFollower();
+        }
+    }
+
+    private void applyOperatorATestDuties() {
+        double launchDuty = LauncherConstants.kOperatorATestLaunchDuty;
+        feeder_spinner.setControl(new DutyCycleOut(LauncherConstants.kOperatorATestFeederSpinnerDuty));
+        feeder_roller.setControl(new DutyCycleOut(LauncherConstants.kOperatorATestFeederRollerDuty));
+        launchMotor.setControl(new DutyCycleOut(launchDuty));
+        launchMotorFollower.setControl(new DutyCycleOut(-launchDuty));
+    }
+
+    private void stopOperatorATestAndRestoreFollower() {
+        feeder_spinner.setControl(brake);
+        feeder_roller.setControl(brake);
+        launchMotor.setControl(brake);
+        launchMotorFollower.setControl(new Follower(launchMotor.getDeviceID(), MotorAlignmentValue.Opposed));
     }
 
     /** Simple shooting mode toggle, using the internal simpleLaunchRpm and a fixed pitch. */
@@ -404,6 +445,9 @@ public final class Launcher extends SubsystemBase {
 
     /* A yaw of NaN indicates that actually we will use dynamic yaw for hurling */
     public void simpleToggle(double launchSpeedRpm, double pitchDegrees, double yawDegrees) {
+        if (LauncherConstants.kIsolateLaunchAndFeederMotorsForTesting) {
+            return;
+        }
         toggledOn = !toggledOn;
         // System.out.println("launcher simpleToggle, toggledOn: " + toggledOn + ", target RPM=" + launchSpeedRpm);
         if (toggledOn) {
@@ -485,14 +529,16 @@ public final class Launcher extends SubsystemBase {
             prepToShoot();
         }
 
-        if (mode == Mode.FIRE && !toggledOn) {
-            // Only push the ball in if the flywheel is at speed and we are out of trench
-            setFeeder(shooterSpeedReady && !nearTrench); 
-        } else if (mode != Mode.FIRE && !toggledOn) {
-            // Standard intake pass-through logic for STANDBY/OFF
-            boolean intakeSpinning = Intake.getInstance().isSpinning();
-            feeder_spinner.setControl(intakeSpinning ? feederSpinnerWithIntakeRequest : brake);
-            feeder_roller.setControl(brake); // Keep roller off unless firing
+        if (!LauncherConstants.kIsolateLaunchAndFeederMotorsForTesting) {
+            if (mode == Mode.FIRE && !toggledOn) {
+                // Only push the ball in if the flywheel is at speed and we are out of trench
+                setFeeder(shooterSpeedReady && !nearTrench); 
+            } else if (mode != Mode.FIRE && !toggledOn) {
+                // Standard intake pass-through logic for STANDBY/OFF
+                boolean intakeSpinning = Intake.getInstance().isSpinning();
+                feeder_spinner.setControl(intakeSpinning ? feederSpinnerWithIntakeRequest : brake);
+                feeder_roller.setControl(brake); // Keep roller off unless firing
+            }
         }
 
         pitchTorque = pitchMotor.getTorqueCurrent().getValueAsDouble();
@@ -517,6 +563,10 @@ public final class Launcher extends SubsystemBase {
 
         if (toggledOn && dynamicYaw)
             setYaw(-Drive.Drivetrain.getInstance().getState().Pose.getRotation().getDegrees() + (blueAlliance ? 0 : 180));
+
+        if (m_operatorAButtonDutyTest) {
+            applyOperatorATestDuties();
+        }
     }
 
     @Override
