@@ -81,9 +81,8 @@ public final class RobotContainer {
         SmartDashboard.putData(launcher);
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.B))
             .onTrue(new InstantCommand(() -> launcher.forcePitchDown(), launcher));
-        new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.A))
-            .onTrue(new InstantCommand(() -> launcher.setOperatorAButtonDutyTest(true), launcher))
-            .onFalse(new InstantCommand(() -> launcher.setOperatorAButtonDutyTest(false), launcher));
+        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.A))
+        //     .onTrue(new InstantCommand(() -> launcher.simpleToggle(2500, 60), launcher));
         // --- SHOOTING ---
         // Controlls:
         // X: Simple toggle shooter / Shoot
