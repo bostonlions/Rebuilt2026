@@ -45,7 +45,6 @@ public class LauncherConstants {
 
         // --- Motor Duty Cycles ---
         public static final double kFeederSpinnerMotionDuty = 0.7; // for washing machine speed (can be .5)
-        public static final double kFeederSpinnerWithIntakeRequestDuty = 0.1; // for washing machine speed when intaking
         public static final double kFeederRollerMotionDuty = 0.9; // for feeder roller speed
 
         // --- Shooter Kinematics & Polynomials ---

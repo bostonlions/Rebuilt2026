@@ -38,7 +38,6 @@ import edu.wpi.first.math.MathUtil;
 import frc.robot.Robot;
 import frc.robot.Robot.Ports;
 import frc.robot.subsystems.Drive;
-import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Trimmer;
 
 import static frc.robot.Robot.kCANBusJustice;
@@ -64,7 +63,6 @@ public final class Launcher extends SubsystemBase {
 
     private final StaticBrake brake = new StaticBrake();
     private final DutyCycleOut feederSpinnerMotionRequest = new DutyCycleOut(LauncherConstants.kFeederSpinnerMotionDuty);
-    private final DutyCycleOut feederSpinnerWithIntakeRequest = new DutyCycleOut(LauncherConstants.kFeederSpinnerWithIntakeRequestDuty);
     private final DutyCycleOut feederRollerMotionRequest = new DutyCycleOut(LauncherConstants.kFeederRollerMotionDuty);
 
     private double launchP = LauncherConstants.kDefaultLaunchP;
@@ -480,7 +478,6 @@ public final class Launcher extends SubsystemBase {
     public void periodic() {
         setAlliance();
 
-        // Run feeder spinner at slow rate when intake is spinning (unless we're firing)
         if (mode != Mode.OFF) {
             prepToShoot();
         }
@@ -489,10 +486,9 @@ public final class Launcher extends SubsystemBase {
             // Only push the ball in if the flywheel is at speed and we are out of trench
             setFeeder(shooterSpeedReady && !nearTrench);
         } else if (mode != Mode.FIRE && !toggledOn) {
-            // Standard intake pass-through logic for STANDBY/OFF
-            boolean intakeSpinning = Intake.getInstance().isSpinning();
-            feeder_spinner.setControl(intakeSpinning ? feederSpinnerWithIntakeRequest : brake);
-            feeder_roller.setControl(brake); // Keep roller off unless firing
+            // Intake (e.g. operator LB) does not run feeder_spinner; keep feeder idle unless firing above.
+            feeder_spinner.setControl(brake);
+            feeder_roller.setControl(brake);
         }
 
         pitchTorque = pitchMotor.getTorqueCurrent().getValueAsDouble();
