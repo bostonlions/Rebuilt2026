@@ -28,6 +28,7 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -108,6 +109,8 @@ public final class Launcher extends SubsystemBase {
     private boolean toggledOn = false;
     private boolean dynamicYaw;
     private boolean forcingDown = false;
+    /** Time since {@link Mode#FIRE} was entered; feeders run after {@link LauncherConstants#kFireFeederStartDelaySeconds}. */
+    private final Timer m_fireFeederDelayTimer = new Timer();
     /** Last Motion Magic scale applied to yaw (1.0 = normal, {@link LauncherConstants#kYawLongPathMotionMagicScale} = wrap path). */
     private double m_yawMotionMagicScale = Double.NaN;
     /**
@@ -462,6 +465,9 @@ public final class Launcher extends SubsystemBase {
             }
             // setFeeder(newMode == Mode.FIRE);
         }
+        if (newMode == Mode.FIRE) {
+            m_fireFeederDelayTimer.restart();
+        }
         mode = newMode;
     }
 
@@ -483,8 +489,11 @@ public final class Launcher extends SubsystemBase {
         }
 
         if (mode == Mode.FIRE && !toggledOn) {
-            // Only push the ball in if the flywheel is at speed and we are out of trench
-            setFeeder(shooterSpeedReady && !nearTrench);
+            if (m_fireFeederDelayTimer.hasElapsed(LauncherConstants.kFireFeederStartDelaySeconds)) {
+                setFeeder(true);
+            } else {
+                setFeeder(false);
+            }
         } else if (mode != Mode.FIRE && !toggledOn) {
             // Intake (e.g. operator LB) does not run feeder_spinner; keep feeder idle unless firing above.
             feeder_spinner.setControl(brake);

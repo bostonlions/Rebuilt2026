@@ -46,6 +46,8 @@ public class LauncherConstants {
         // --- Motor Duty Cycles ---
         public static final double kFeederSpinnerMotionDuty = 0.7; // for washing machine speed (can be .5)
         public static final double kFeederRollerMotionDuty = 0.9; // for feeder roller speed
+        /** After operator enters {@code FIRE} (X), wait this long before starting feeder spinner + roller. */
+        public static final double kFireFeederStartDelaySeconds = 0.5;
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0.0; // (deg) to offset pitch if shooting based on distance is missing
