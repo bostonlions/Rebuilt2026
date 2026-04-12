@@ -1,10 +1,13 @@
 package frc.robot.subsystems.launcher;
 // import frc.robot.subsystems.launcher.LauncheConstants;
 
+import edu.wpi.first.math.geometry.Rotation2d;
+import frc.robot.subsystems.Drive.Drivetrain;
+
 public class ShooterKinematics {
     /**
      * Calculates the result of a Poly33 surface fit
-     * 
+     *
      * @param x Distance to target (m)
      * @param y Radial velocity of robot (m/s)
      * @param p Coefficients array
@@ -32,5 +35,22 @@ public class ShooterKinematics {
 
     public double getAdjustedFlywheelRPM(double targetRPM) {
         return targetRPM * 1; // TODO: fit a feedforward graph to this
+    }
+
+    public double getCableTensionFeedforward(Rotation2d theta) {
+        //this is the desmos form of the equasion \frac{-2h}{1+e^{-k\left(x-60\right)}}+h
+
+        return (-(LauncherConstants.cableTensionFeedforwardMagnitude * 2) /
+        (1 + (Math.exp(-0.09 * (theta.getDegrees() - 60))))) + LauncherConstants.cableTensionFeedforwardMagnitude;
+    }
+
+    public double getYawFrictionFeedworward() {
+        double omega = Drivetrain.getInstance().getState().Speeds.omegaRadiansPerSecond;
+        if (omega > 0.05) {
+            return omega * LauncherConstants.yawFricationFeedforwardMagnitude;
+        } else if (omega < -0.05) {
+            return omega * LauncherConstants.yawFricationFeedforwardMagnitude;
+        }
+        return 0;
     }
 }

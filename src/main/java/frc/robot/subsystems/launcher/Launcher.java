@@ -205,7 +205,7 @@ public final class Launcher extends SubsystemBase {
         m_yawMotionMagicScale = scale;
         yawMotor.getConfigurator().apply(
             new TalonFXConfiguration()
-                .withSlot0(new Slot0Configs().withKP(yawP).withKI(yawI).withKD(yawD))
+                .withSlot0(new Slot0Configs().withKP(yawP).withKI(yawI).withKD(yawD).withKS(0.01))
                 .withMotionMagic(new MotionMagicConfigs()
                     .withMotionMagicCruiseVelocity(LauncherConstants.kYawMotionMagicCruiseVelocity * scale)
                     .withMotionMagicAcceleration(LauncherConstants.kYawMotionMagicAcceleration * scale)
@@ -247,9 +247,7 @@ public final class Launcher extends SubsystemBase {
         //pitchMotor.setControl(new MotionMagicDutyCycle((degrees - LauncherConstants.pitchBounds.getFirst()) / LauncherConstants.pitchGearRatio));
         pitchMotor.setControl(new MotionMagicDutyCycle((LauncherConstants.pitchBounds.getSecond() - degrees) / LauncherConstants.pitchGearRatio));
     }
-    /**
-     * @param degrees desired turret yaw in degrees (robot-relative), same convention as {@link MathUtil#inputModulus}.
-     */
+
     private void setYaw(double rawDegrees) {
         final double min = LauncherConstants.yawBounds.getFirst();
         final double max = LauncherConstants.yawBounds.getSecond();
@@ -287,7 +285,7 @@ public final class Launcher extends SubsystemBase {
 
             // CRITICAL FIX: We clamp, but DO NOT use inputModulus here!
             double holdDeg = MathUtil.clamp(current, min, max);
-            yawMotor.setControl(new MotionMagicDutyCycle(-holdDeg * LauncherConstants.yawGearRatio / 360.0));
+            simpleSetYaw(holdDeg);
             return;
         }
 
@@ -309,7 +307,13 @@ public final class Launcher extends SubsystemBase {
         );
 
         // 7. Command the motor
-        yawMotor.setControl(new MotionMagicDutyCycle(-target * LauncherConstants.yawGearRatio / 360.0));
+        simpleSetYaw(target);
+    }
+
+    private void simpleSetYaw(double degrees) {
+        yawMotor.setControl(new MotionMagicDutyCycle(-degrees * LauncherConstants.yawGearRatio / 360.0)
+            .withFeedForward(kinematics.getCableTensionFeedforward(Rotation2d.fromDegrees(degrees)))
+            .withFeedForward(kinematics.getYawFrictionFeedworward()));
     }
 
     /**
@@ -322,17 +326,18 @@ public final class Launcher extends SubsystemBase {
         // 1. Convert Robot-Centric Speeds to Field-Centric Speeds
         double rvx = state.Speeds.vxMetersPerSecond;
         double rvy = state.Speeds.vyMetersPerSecond;
-        double robotYaw = currentPose.getRotation().getRadians();
-        double fieldVx = rvx * Math.cos(robotYaw) - rvy * Math.sin(robotYaw);
-        double fieldVy = rvx * Math.sin(robotYaw) + rvy * Math.cos(robotYaw);
-        double finalRobotYaw = robotYaw + state.Speeds.omegaRadiansPerSecond * LauncherConstants.projectionTime;
+        double rvw = state.Speeds.omegaRadiansPerSecond;
         double tx = LauncherConstants.turretPosRobotRel.getX();
         double ty = LauncherConstants.turretPosRobotRel.getY();
+        double robotYaw = currentPose.getRotation().getRadians();
+        double fieldVx = rvx * Math.cos(robotYaw) - rvy * Math.sin(robotYaw) - rvw * (tx * Math.sin(robotYaw) + ty * Math.cos(robotYaw));
+        double fieldVy = rvx * Math.sin(robotYaw) + rvy * Math.cos(robotYaw) + rvw * (tx * Math.cos(robotYaw) - ty * Math.sin(robotYaw));
+        double finalRobotYaw = robotYaw + rvw * LauncherConstants.projectionTime;
 
         // 2. Project pose slightly into the future based on velocity
         Pose2d projectedPose = new Pose2d(
-            currentPose.getX() + fieldVx * LauncherConstants.projectionTime + tx * Math.cos(finalRobotYaw) - ty * Math.sin(finalRobotYaw),
-            currentPose.getY() + fieldVy * LauncherConstants.projectionTime + tx * Math.sin(finalRobotYaw) + ty * Math.cos(finalRobotYaw),
+            currentPose.getX() + fieldVx * LauncherConstants.projectionTime * LauncherConstants.fudgeFactorLinearVelocityProjection + tx * Math.cos(finalRobotYaw) - ty * Math.sin(finalRobotYaw),
+            currentPose.getY() + fieldVy * LauncherConstants.projectionTime * LauncherConstants.fudgeFactorLinearVelocityProjection + tx * Math.sin(finalRobotYaw) + ty * Math.cos(finalRobotYaw),
             new Rotation2d(finalRobotYaw)
         );
 
@@ -363,10 +368,10 @@ public final class Launcher extends SubsystemBase {
         pitchTarget = kinematics.getTargetHoodAngle(targetDist, targetRadialVelo);
 
         // 6. Calculate Yaw Target (Angle to target minus projected robot heading)
-        yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees();
+        yawTarget = angleToTarget.getDegrees() - projectedPose.getRotation().getDegrees() + LauncherConstants.yawOffset;
 
         // 6b. Adjust Yaw Target for tangential velocity
-        double yawAdjustment = MathUtil.clamp(-targetTangentialVelo / exitVeloMetersPerSec / Math.cos(pitchTarget * Math.PI / 180) * 180 / Math.PI, -LauncherConstants.maxYawAdjustment, LauncherConstants.maxYawAdjustment);
+        double yawAdjustment = MathUtil.clamp(-LauncherConstants.fudgeFactorYawAdjustment * targetTangentialVelo / exitVeloMetersPerSec / Math.cos(pitchTarget * Math.PI / 180) * 180 / Math.PI, -LauncherConstants.maxYawAdjustment, LauncherConstants.maxYawAdjustment);
         yawTarget += yawAdjustment;
 
         // 7. Apply Safeties and Send to Motors
@@ -554,6 +559,7 @@ public final class Launcher extends SubsystemBase {
         builder.addDoubleProperty("calcYawDegrees", () -> calcYawDegrees(), null);
         builder.addDoubleProperty("yawMotorRotations", () -> yawMotor.getPosition().getValueAsDouble(), null);
         builder.addDoubleProperty("yawFromMotor", () -> -yawMotor.getPosition().getValueAsDouble() * 360. / LauncherConstants.yawGearRatio, null);
+        builder.addDoubleProperty("yawMotorDutyCycle", () -> yawMotor.getDutyCycle().getValueAsDouble(), null);
         builder.addDoubleProperty("yawMinTorque", () -> yawMinTorque, null);
         builder.addDoubleProperty("yawMaxTorque", () -> yawMaxTorque, null);
 

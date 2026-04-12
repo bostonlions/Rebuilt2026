@@ -7,21 +7,21 @@ public class LauncherConstants {
         // --- Turret & Yaw Constants ---
         // new wire mgmt & turret: with no guard attached to the launch wheel, [-135 -> 225] prevents
         // the wire harness from touching the tread (which would grab it!)
-        public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-135.0, 225.0);
+        public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-125.0, 215.0);
 
-        public static final double c11Offset = 0.01; // 11-tooth cancoder value at 0 degrees
-        public static final double c12Offset = 0.226; // 12-tooth cancoder value at 0 degrees
+        public static final double c11Offset = 0.138; // 11-tooth cancoder value at 0 degrees
+        public static final double c12Offset = 0.333; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
         public static final double launchGearRatio = 0.6666666667;
         /** When near a soft limit, allow this much past the limit without re-homing via wrap (hold position). */
         public static final double kTurretLimitPastHoldDeg = 5.0;
         /** Scale on yaw Motion Magic cruise / accel / jerk when the turret must take the long wrap path (80% less → 0.2). */
-        public static final double kYawLongPathMotionMagicScale = 0.90;
+        public static final double kYawLongPathMotionMagicScale = 0.50;
         /** End latch (return to full Motion Magic limits) when within this many degrees of the wrapped setpoint. */
         public static final double kYawLongPathArriveEpsilonDeg = 3.0;
-        public static final double kYawMotionMagicCruiseVelocity = 50; // was 600
-        public static final double kYawMotionMagicAcceleration = 250; // TODO: check this
-        public static final double kYawMotionMagicJerk = 1000; // 10000 works
+        public static final double kYawMotionMagicCruiseVelocity = 50;
+        public static final double kYawMotionMagicAcceleration = 200;
+        public static final double kYawMotionMagicJerk = 1000;
 
         // --- Pitch (Hood) Constants ---
         private static final double minHoodAngle = 20.0; // hood angle relative to horizontal
@@ -40,8 +40,12 @@ public class LauncherConstants {
         public static final double kDefaultLaunchD = 0.0;
 
         public static final double kDefaultYawP = 0.4;
-        public static final double kDefaultYawI = 0.00;
+        public static final double kDefaultYawI = 0.01;
         public static final double kDefaultYawD = 0.022;
+
+        // --- Yaw Control ---
+        public static final double cableTensionFeedforwardMagnitude = 0.04;
+        public static final double yawFricationFeedforwardMagnitude = 0.1;
 
         // --- Motor Duty Cycles ---
         public static final double kFeederSpinnerMotionDuty = 0.7; // for washing machine speed (can be .5)
@@ -51,8 +55,11 @@ public class LauncherConstants {
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0.0; // (deg) to offset pitch if shooting based on distance is missing
-        public static final double kRPMScaleFactor = 1.37; // (m/s) scale to offset velocity if shooting based on distance is missing
+        public static final double kRPMScaleFactor = 1.41; // (m/s) scale to offset velocity if shooting based on distance is missing
         public static final double projectionTime = 0.1; // seconds into the future to predict position
+        public static final double fudgeFactorLinearVelocityProjection = 4;
+        public static final double fudgeFactorYawAdjustment = 1;
+        public static final double yawOffset = -3;
         public static final double kRPMTolerance = 0.05; // tolerance when checking flywheel speed is within range
         public static final double maxYawAdjustment = 10.0; // degrees to adjust yaw to compensate tangential velocity
 

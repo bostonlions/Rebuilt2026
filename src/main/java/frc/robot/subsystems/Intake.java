@@ -53,9 +53,9 @@ public final class Intake extends SubsystemBase {
     private final DutyCycleOut krakenSpinDuty;
     private final boolean spinnerIsKraken;
 
-    private final double inPosition = 0.254; //flush with bumper
+    private final double inPosition = 0.254; // flush with bumper
     private final double partialOut = 0.37; // for agitation (was .37)
-    private final double partialIn = 0.8; // for agitation (was .8_)
+    private final double partialIn = 0.8; // for agitation (was .8)
     private final double outPosition = 0.88; // can't exceed one
 
     public static Intake getInstance() {
@@ -103,8 +103,8 @@ public final class Intake extends SubsystemBase {
         extendMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withCurrentLimits(new CurrentLimitsConfigs()
                 .withSupplyCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(30)
-                .withSupplyCurrentLowerLimit(20)
+                .withSupplyCurrentLimit(40)
+                .withSupplyCurrentLowerLimit(30)
                 .withSupplyCurrentLowerTime(0.1))
             .withSlot0(new Slot0Configs()
                 .withKP(2.00)
@@ -114,8 +114,8 @@ public final class Intake extends SubsystemBase {
                 .withKA(0.01)
                 .withKS(0.1))
             .withMotionMagic(new MotionMagicConfigs()
-                .withMotionMagicCruiseVelocity(6)
-                .withMotionMagicAcceleration(10))
+                .withMotionMagicCruiseVelocity(14)
+                .withMotionMagicAcceleration(11))
             .withMotorOutput(new MotorOutputConfigs()
                 .withNeutralMode(NeutralModeValue.Brake)
                 .withInverted(InvertedValue.Clockwise_Positive))
