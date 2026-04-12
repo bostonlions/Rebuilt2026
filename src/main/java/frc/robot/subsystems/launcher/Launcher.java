@@ -111,6 +111,7 @@ public final class Launcher extends SubsystemBase {
     private boolean forcingDown = false;
     /** Time since {@link Mode#FIRE} was entered; feeders run after {@link LauncherConstants#kFireFeederStartDelaySeconds}. */
     private final Timer m_fireFeederDelayTimer = new Timer();
+    private final Timer turretSpinTimer = new Timer();
     /** Last Motion Magic scale applied to yaw (1.0 = normal, {@link LauncherConstants#kYawLongPathMotionMagicScale} = wrap path). */
     private double m_yawMotionMagicScale = Double.NaN;
     /**
@@ -195,6 +196,7 @@ public final class Launcher extends SubsystemBase {
         m_yawMotionMagicScale = Double.NaN;
         m_yawLongPathProfileLatched = false;
         ensureYawMotionMagicScale(1.0);
+        turretSpinTimer.start();
     }
 
     /** Applies yaw PID slot + Motion Magic limits scaled by {@code scale} (1.0 normal, {@link LauncherConstants#kYawLongPathMotionMagicScale} for wrap). */
@@ -238,7 +240,6 @@ public final class Launcher extends SubsystemBase {
     }
 
     private void setPitch(double degrees) {
-        System.out.println("SetPitch: " + degrees);
         if (degrees < LauncherConstants.pitchBounds.getFirst() || degrees > LauncherConstants.pitchBounds.getSecond()) {
             System.out.println("Invalid pitch target: " + degrees);
             return;
@@ -264,11 +265,13 @@ public final class Launcher extends SubsystemBase {
             if (target - 360.0 >= min) {
                 target -= 360.0;
                 m_yawLongPathProfileLatched = true;
+                turretSpinTimer.restart();
             }
         } else if (target < min) {
             if (target + 360.0 <= max) {
                 target += 360.0;
                 m_yawLongPathProfileLatched = true;
+                turretSpinTimer.restart();
             }
         }
 
@@ -377,7 +380,7 @@ public final class Launcher extends SubsystemBase {
         // 7. Apply Safeties and Send to Motors
         nearTrench = MathUtil.isNear(4.625594, currentPose.getX(), 0.61) || MathUtil.isNear(11.915394, currentPose.getX(), 0.61); //TODO: CHECK
 
-        // 8. Compensate for RPM drop when the ball is launched (this is not used)
+        // 8. Compensate for RPM drop when the ball is launched
         adjustedRPM = kinematics.getAdjustedFlywheelRPM(targetRPM);
 
         launchMotor.setControl(new MotionMagicVelocityDutyCycle(adjustedRPM / 60 * LauncherConstants.launchGearRatio));
@@ -468,7 +471,6 @@ public final class Launcher extends SubsystemBase {
             else {
                 shooterSpeedReady = false;
             }
-            // setFeeder(newMode == Mode.FIRE);
         }
         if (newMode == Mode.FIRE) {
             m_fireFeederDelayTimer.restart();
@@ -494,7 +496,10 @@ public final class Launcher extends SubsystemBase {
         }
 
         if (mode == Mode.FIRE && !toggledOn) {
-            if (m_fireFeederDelayTimer.hasElapsed(LauncherConstants.kFireFeederStartDelaySeconds)) {
+            if (
+                m_fireFeederDelayTimer.hasElapsed(LauncherConstants.kFireFeederStartDelaySeconds) &&
+                turretSpinTimer.hasElapsed(LauncherConstants.turretSpinFeederDelaySeconds)
+            ) {
                 setFeeder(true);
             } else {
                 setFeeder(false);

@@ -9,19 +9,19 @@ public class LauncherConstants {
         // the wire harness from touching the tread (which would grab it!)
         public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-125.0, 215.0);
 
-        public static final double c11Offset = 0.138; // 11-tooth cancoder value at 0 degrees
-        public static final double c12Offset = 0.333; // 12-tooth cancoder value at 0 degrees
-        public static final double yawGearRatio = 21; // rotations of yaw motor to give a full rotation of turret
-        public static final double launchGearRatio = 0.6666666667;
+        public static final double c11Offset = 0.390; // 11-tooth cancoder value at 0 degrees
+        public static final double c12Offset = 0.898; // 12-tooth cancoder value at 0 degrees
+        public static final double yawGearRatio = 35; // rotations of yaw motor to give a full rotation of turret
+        public static final double launchGearRatio = 0.6666666666667;
         /** When near a soft limit, allow this much past the limit without re-homing via wrap (hold position). */
         public static final double kTurretLimitPastHoldDeg = 5.0;
         /** Scale on yaw Motion Magic cruise / accel / jerk when the turret must take the long wrap path (80% less → 0.2). */
         public static final double kYawLongPathMotionMagicScale = 0.50;
         /** End latch (return to full Motion Magic limits) when within this many degrees of the wrapped setpoint. */
         public static final double kYawLongPathArriveEpsilonDeg = 3.0;
-        public static final double kYawMotionMagicCruiseVelocity = 50;
-        public static final double kYawMotionMagicAcceleration = 200;
-        public static final double kYawMotionMagicJerk = 1000;
+        public static final double kYawMotionMagicCruiseVelocity = 100;
+        public static final double kYawMotionMagicAcceleration = 400;
+        public static final double kYawMotionMagicJerk = 2000;
 
         // --- Pitch (Hood) Constants ---
         private static final double minHoodAngle = 20.0; // hood angle relative to horizontal
@@ -52,6 +52,8 @@ public class LauncherConstants {
         public static final double kFeederRollerMotionDuty = 0.9; // for feeder roller speed
         /** After operator enters {@code FIRE} (X), wait this long before starting feeder spinner + roller. */
         public static final double kFireFeederStartDelaySeconds = 0.5;
+        /** When turret needs to swivel 360 degrees, wait this long before starting feeder spinner + roller. */
+        public static final double turretSpinFeederDelaySeconds = 0.5;
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0.0; // (deg) to offset pitch if shooting based on distance is missing
