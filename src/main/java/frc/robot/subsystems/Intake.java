@@ -56,7 +56,7 @@ public final class Intake extends SubsystemBase {
     private final double inPosition = 0.254; // flush with bumper
     private final double partialOut = 0.37; // for agitation (was .37)
     private final double partialIn = 0.8; // for agitation (was .8)
-    private final double outPosition = 0.88; // can't exceed one
+    private final double outPosition = 0.823; // can't exceed one (was .88)
 
     public static Intake getInstance() {
         if (instance == null) instance = new Intake();
