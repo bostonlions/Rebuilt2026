@@ -9,8 +9,8 @@ public class LauncherConstants {
         // the wire harness from touching the tread (which would grab it!)
         public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-125.0, 215.0);
 
-        public static final double c11Offset = 0.390; // 11-tooth cancoder value at 0 degrees
-        public static final double c12Offset = 0.898; // 12-tooth cancoder value at 0 degrees
+        public static final double c11Offset = 0.6716; // 11-tooth cancoder value at 0 degrees
+        public static final double c12Offset = 0.730; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 35; // rotations of yaw motor to give a full rotation of turret
         public static final double launchGearRatio = 0.6666666666667;
         /** When near a soft limit, allow this much past the limit without re-homing via wrap (hold position). */
