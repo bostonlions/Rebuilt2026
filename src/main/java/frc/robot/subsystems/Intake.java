@@ -74,7 +74,7 @@ public final class Intake extends SubsystemBase {
         if (spinnerIsKraken) {
             spinMotorNeo = null;
             krakenBrake = new StaticBrake();
-            krakenSpinDuty = new DutyCycleOut(0.75);
+            krakenSpinDuty = new DutyCycleOut(0.95);
             spinMotorKraken = new TalonFX(Ports.INTAKE_SPIN, kCANBusJustice);
             spinMotorKraken.getConfigurator().apply(new TalonFXConfiguration()
                 .withCurrentLimits(new CurrentLimitsConfigs()
