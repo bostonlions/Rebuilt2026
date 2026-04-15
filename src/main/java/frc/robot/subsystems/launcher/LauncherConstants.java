@@ -21,7 +21,7 @@ public class LauncherConstants {
         public static final double kYawLongPathArriveEpsilonDeg = 3.0;
         public static final double kYawMotionMagicCruiseVelocity = 100;
         public static final double kYawMotionMagicAcceleration = 400;
-        public static final double kYawMotionMagicJerk = 2000;
+        public static final double kYawMotionMagicJerk = 1500;
 
         // --- Pitch (Hood) Constants ---
         private static final double minHoodAngle = 20.0; // hood angle relative to horizontal
@@ -35,7 +35,7 @@ public class LauncherConstants {
         public static final double pitchLimitRotations = -0.25;
 
         // --- Default PID & Control Tuning ---
-        public static final double kDefaultLaunchP = 0.02;
+        public static final double kDefaultLaunchP = 0.02;//.02
         public static final double kDefaultLaunchI = 0.0;
         public static final double kDefaultLaunchD = 0.0;
 
@@ -49,11 +49,11 @@ public class LauncherConstants {
 
         // --- Motor Duty Cycles ---
         public static final double kFeederSpinnerMotionDuty = 0.7; // for washing machine speed (can be .5)
-        public static final double kFeederRollerMotionDuty = 0.9; // for feeder roller speed
+        public static final double kFeederRollerMotionDuty = 0.5; // for feeder roller speed
         /** After operator enters {@code FIRE} (X), wait this long before starting feeder spinner + roller. */
-        public static final double kFireFeederStartDelaySeconds = 0.5;
+        public static final double kFireFeederStartDelaySeconds = 0.01;
         /** When turret needs to swivel 360 degrees, wait this long before starting feeder spinner + roller. */
-        public static final double turretSpinFeederDelaySeconds = 0.5;
+        public static final double turretSpinFeederDelaySeconds = 0.2;
 
         // --- Shooter Kinematics & Polynomials ---
         public static final double kPitchOffset = 0.0; // (deg) to offset pitch if shooting based on distance is missing

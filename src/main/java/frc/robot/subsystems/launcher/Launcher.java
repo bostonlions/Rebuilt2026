@@ -74,7 +74,7 @@ public final class Launcher extends SubsystemBase {
     private double yawI = LauncherConstants.kDefaultYawI;
     private double yawD = LauncherConstants.kDefaultYawD;
 
-    private double pitchP = 0.1, pitchI = 0.0, pitchD = 0.0;
+    private double pitchP = 0.4, pitchI = 0.0, pitchD = 0.0;
 
     private double pitchTorque; // member variable for use in smart dashboard
 
@@ -580,6 +580,7 @@ public final class Launcher extends SubsystemBase {
         builder.addDoubleProperty("Simple Launch Yaw", () -> simpleLaunchYaw, null);
         builder.addDoubleProperty("feeder spinner speed", () -> feeder_spinner.getVelocity().getValueAsDouble(), null);
         builder.addDoubleProperty("feeder roller speed", () -> feeder_roller.getVelocity().getValueAsDouble(), null);
+        builder.addDoubleProperty("launch error", () -> launchMotor.getClosedLoopError().getValueAsDouble(), null);
     }
 
     double yawSetpoint = Double.NaN;
