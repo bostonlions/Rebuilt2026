@@ -81,23 +81,7 @@ public final class RobotContainer {
         SmartDashboard.putData(launcher);
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.B))
             .onTrue(new InstantCommand(() -> launcher.forcePitchDown(), launcher));
-        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.A))
-        //     .onTrue(new InstantCommand(() -> launcher.simpleToggle(2500, 60), launcher));
-        // --- SHOOTING ---
-        // Controlls:
-        // X: Simple toggle shooter / Shoot
-        // RB: Simple Hurl / Spin Up
-        // To shoot, hold down RB and press X when ready to start shooting
 
-        // Simple shooting mode: X toggles everything on/off.
-        // RPM target is adjustable at runtime via Trimmer ("Simple Launch RPM +- 100").
-        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.X))
-        //     .onTrue(new InstantCommand(() -> launcher.simpleToggle()));
-        // // Hurling mode: Right Bumper toggles everything on/off.
-        // new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
-        //     .onTrue(new InstantCommand(() -> launcher.simpleToggle(370/*0*/, 31, Double.NaN))); // Hurl shot
-
-        // UNCOMMENT WHEN READY FOR SHOOTNIG WITH POSE2D
         //1. Spin up / Aim (STANDBY)
         new Trigger(() -> controller.operator.getButton(ControlBoard.CustomXboxController.Button.RB))
             .onTrue(new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY)))
@@ -152,7 +136,7 @@ public final class RobotContainer {
     public static final class ControlBoard {
         private static ControlBoard mInstance = null;
         public final CustomXboxController operator;
-        private final GenericHID driver;
+        public final GenericHID driver;
         private final double speedFactor;
         private final double kSwerveDeadband;
 
@@ -161,7 +145,7 @@ public final class RobotContainer {
         private static final double kSlowDriveScale = 0.25;
         private static final double kSlowDriveThreshold = 0.05;
 
-        private static ControlBoard getInstance() {
+        public static ControlBoard getInstance() {
             if (mInstance == null) mInstance = new ControlBoard();
             return mInstance;
         }

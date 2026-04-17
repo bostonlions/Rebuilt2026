@@ -29,15 +29,12 @@ import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
-import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import edu.wpi.first.math.MathUtil;
 
 import frc.robot.Robot;
 import frc.robot.Robot.Ports;
+import frc.robot.RobotContainer.ControlBoard;
 import frc.robot.subsystems.Drive;
 import frc.robot.subsystems.Trimmer;
 
@@ -49,6 +46,7 @@ import static edu.wpi.first.units.Units.Amps;
 public final class Launcher extends SubsystemBase {
     public static enum Mode {OFF, STANDBY, FIRE}
     private Mode mode = Mode.OFF;
+    public double kFireFeederStartDelaySeconds = LauncherConstants.kFireFeederStartDelayAutonomous; // will be changed in teleop
 
     private final ShooterKinematics kinematics = new ShooterKinematics();
 
@@ -74,8 +72,7 @@ public final class Launcher extends SubsystemBase {
     private double yawI = LauncherConstants.kDefaultYawI;
     private double yawD = LauncherConstants.kDefaultYawD;
 
-    private double pitchP = 0.4, pitchI = 0.0, pitchD = 0.0;
-
+    private double pitchP = 0.2, pitchI = 0.0, pitchD = 0.0;
     private double pitchTorque; // member variable for use in smart dashboard
 
     private final TalonFX launchMotor = new TalonFX(Ports.LAUNCHER, kCANBusJustice);
@@ -100,12 +97,12 @@ public final class Launcher extends SubsystemBase {
         .withMotorOutput(new MotorOutputConfigs()
             .withNeutralMode(NeutralModeValue.Brake)
             .withInverted(InvertedValue.CounterClockwise_Positive));
-    public final boolean shooterIsGoingFastEnough() {return shooterSpeedReady;}
 
-    // Simple-toggle launcher RPM target, adjustable via Trimmer at runtime
+    // for the mode where we shoot fixed:
     private double simpleLaunchRpm = 1800.0;
-    private double simpleLaunchPitch = 25.0;
+    private double simpleLaunchPitch = 65.0;
     private double simpleLaunchYaw = 0.0;
+
     private boolean toggledOn = false;
     private boolean dynamicYaw;
     private boolean forcingDown = false;
@@ -161,8 +158,8 @@ public final class Launcher extends SubsystemBase {
             .withSlot0(new Slot0Configs().withKP(launchP).withKI(launchI).withKD(0).withKV(0.025))
             .withMotionMagic(new MotionMagicConfigs()
                 .withMotionMagicCruiseVelocity(60)
-                .withMotionMagicAcceleration(100)
-                .withMotionMagicJerk(1000))
+                .withMotionMagicAcceleration(200)
+                .withMotionMagicJerk(2000))
             .withVoltage(new VoltageConfigs()
                 .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
             .withTorqueCurrent(new TorqueCurrentConfigs()
@@ -171,8 +168,8 @@ public final class Launcher extends SubsystemBase {
             .withSlot0(new Slot0Configs().withKP(launchP).withKI(launchI).withKD(0).withKV(0.025))
             .withMotionMagic(new MotionMagicConfigs()
                 .withMotionMagicCruiseVelocity(60)
-                .withMotionMagicAcceleration(100)
-                .withMotionMagicJerk(1000))
+                .withMotionMagicAcceleration(200)
+                .withMotionMagicJerk(2000))
             .withVoltage(new VoltageConfigs()
                 .withPeakForwardVoltage(Volts.of(8)).withPeakReverseVoltage(Volts.of(-8)))
             .withTorqueCurrent(new TorqueCurrentConfigs()
@@ -245,7 +242,6 @@ public final class Launcher extends SubsystemBase {
             return;
         }
 
-        //pitchMotor.setControl(new MotionMagicDutyCycle((degrees - LauncherConstants.pitchBounds.getFirst()) / LauncherConstants.pitchGearRatio));
         pitchMotor.setControl(new MotionMagicDutyCycle((LauncherConstants.pitchBounds.getSecond() - degrees) / LauncherConstants.pitchGearRatio));
     }
 
@@ -323,6 +319,13 @@ public final class Launcher extends SubsystemBase {
      * Calculates targeting variables using WPILib Geometry and queries the Polynomial Surface.
      */
     private void prepToShoot() {
+        if (ControlBoard.getInstance().driver.getRawButton(1)) {
+            setPitch(simpleLaunchPitch);
+            setYaw(simpleLaunchYaw);
+            launchMotor.setControl(new MotionMagicVelocityDutyCycle(simpleLaunchRpm / 60 * LauncherConstants.launchGearRatio));
+            return;
+        }
+
         SwerveDriveState state = Drive.Drivetrain.getInstance().getState();
         Pose2d currentPose = state.Pose;
 
@@ -402,63 +405,63 @@ public final class Launcher extends SubsystemBase {
         feeder_roller.setControl(on ? feederRollerMotionRequest : brake);
     }
 
-    /** Simple shooting mode toggle, using the internal simpleLaunchRpm and a fixed pitch. */
-    public void simpleToggle() {
-        simpleToggle(simpleLaunchRpm, simpleLaunchPitch, simpleLaunchYaw);
-    }
+    // /** Simple shooting mode toggle, using the internal simpleLaunchRpm and a fixed pitch. */
+    // public void simpleToggle() {
+    //     simpleToggle(simpleLaunchRpm, simpleLaunchPitch, simpleLaunchYaw);
+    // }
 
-    public void simpleToggle(double launchSpeedRpm, double pitchDegrees) {
-        simpleToggle(launchSpeedRpm, pitchDegrees, 0.0);
-    }
+    // public void simpleToggle(double launchSpeedRpm, double pitchDegrees) {
+    //     simpleToggle(launchSpeedRpm, pitchDegrees, 0.0);
+    // }
 
-    /* A yaw of NaN indicates that actually we will use dynamic yaw for hurling */
-    public void simpleToggle(double launchSpeedRpm, double pitchDegrees, double yawDegrees) {
-        toggledOn = !toggledOn;
-        // System.out.println("launcher simpleToggle, toggledOn: " + toggledOn + ", target RPM=" + launchSpeedRpm);
-        if (toggledOn) {
-            // Closed-loop velocity control: interpret launchSpeedRpm as motor RPM
-            double targetRps = launchSpeedRpm / 60.0; // rotations per second
-            launchMotor.setControl(new MotionMagicVelocityDutyCycle(targetRps));
-            dynamicYaw = Double.isNaN(yawDegrees);
-            if (!dynamicYaw) {
-                System.out.println("from simpletoggle");
-                setYaw(yawDegrees);
-            }
-            setPitch(pitchDegrees);
-            CommandScheduler.getInstance().schedule(
-                // Wait until either launcher is at speed (within tolerance) OR 3 seconds have passed,
-                // then start the feeder.
-                new WaitUntilCommand(() -> {
-                    double currentRps = launchMotor.getVelocity().getValueAsDouble();
-                    // Treat "at speed" as within 5% of target or an absolute small epsilon for low targets
-                    double tol = Math.max(2.0, Math.abs(targetRps) * 0.05); // RPS tolerance
-                    boolean atSpeed = Math.abs(currentRps - targetRps) <= tol;
-                    // Optional debug
-                    // System.out.println("Launcher wait: currentRps=" + currentRps + " targetRps=" + targetRps + " atSpeed=" + atSpeed);
-                    return atSpeed;
-                }).withTimeout(3.0)
-                .andThen(new WaitCommand(0.5))
-                .andThen(new InstantCommand(() -> {if (toggledOn) setFeeder(true);}, this))
-            );
-        } else {
-            setFeeder(false);
-            CommandScheduler.getInstance().schedule(
-                new WaitCommand(1.5).andThen(new InstantCommand(() -> {
-                    if (!toggledOn) {
-                        launchMotor.setControl(brake);
-                        forcePitchDown();
-                        setYaw(0);
-                    }
-                }, this))
-            );
-        }
-    }
+    // /* A yaw of NaN indicates that actually we will use dynamic yaw for hurling */
+    // public void simpleToggle(double launchSpeedRpm, double pitchDegrees, double yawDegrees) {
+    //     toggledOn = !toggledOn;
+    //     // System.out.println("launcher simpleToggle, toggledOn: " + toggledOn + ", target RPM=" + launchSpeedRpm);
+    //     if (toggledOn) {
+    //         // Closed-loop velocity control: interpret launchSpeedRpm as motor RPM
+    //         double targetRps = launchSpeedRpm / 60.0; // rotations per second
+    //         launchMotor.setControl(new MotionMagicVelocityDutyCycle(targetRps));
+    //         dynamicYaw = Double.isNaN(yawDegrees);
+    //         if (!dynamicYaw) {
+    //             System.out.println("from simpletoggle");
+    //             setYaw(yawDegrees);
+    //         }
+    //         setPitch(pitchDegrees);
+    //         CommandScheduler.getInstance().schedule(
+    //             // Wait until either launcher is at speed (within tolerance) OR 3 seconds have passed,
+    //             // then start the feeder.
+    //             new WaitUntilCommand(() -> {
+    //                 double currentRps = launchMotor.getVelocity().getValueAsDouble();
+    //                 // Treat "at speed" as within 5% of target or an absolute small epsilon for low targets
+    //                 double tol = Math.max(2.0, Math.abs(targetRps) * 0.05); // RPS tolerance
+    //                 boolean atSpeed = Math.abs(currentRps - targetRps) <= tol;
+    //                 // Optional debug
+    //                 // System.out.println("Launcher wait: currentRps=" + currentRps + " targetRps=" + targetRps + " atSpeed=" + atSpeed);
+    //                 return atSpeed;
+    //             }).withTimeout(3.0)
+    //             .andThen(new WaitCommand(0.5))
+    //             .andThen(new InstantCommand(() -> {if (toggledOn) setFeeder(true);}, this))
+    //         );
+    //     } else {
+    //         setFeeder(false);
+    //         CommandScheduler.getInstance().schedule(
+    //             new WaitCommand(1.5).andThen(new InstantCommand(() -> {
+    //                 if (!toggledOn) {
+    //                     launchMotor.setControl(brake);
+    //                     forcePitchDown();
+    //                     setYaw(0);
+    //                 }
+    //             }, this))
+    //         );
+    //     }
+    // }
 
     public void setMode (Mode newMode) {
         if (mode == newMode) return;
 
         if (newMode == Mode.OFF) {
-            launchMotor.setControl(brake);
+            launchMotor.setControl(new DutyCycleOut(0));
             setYaw(0);
             setPitch(LauncherConstants.pitchBounds.getSecond());
             setFeeder(false); // Make sure feeder is off
@@ -497,7 +500,7 @@ public final class Launcher extends SubsystemBase {
 
         if (mode == Mode.FIRE && !toggledOn) {
             if (
-                m_fireFeederDelayTimer.hasElapsed(LauncherConstants.kFireFeederStartDelaySeconds) &&
+                m_fireFeederDelayTimer.hasElapsed(kFireFeederStartDelaySeconds) &&
                 turretSpinTimer.hasElapsed(LauncherConstants.turretSpinFeederDelaySeconds)
             ) {
                 setFeeder(true);

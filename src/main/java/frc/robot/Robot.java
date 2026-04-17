@@ -30,7 +30,7 @@ public final class Robot extends TimedRobot {
     private final RobotContainer m_robotContainer = new RobotContainer();
     private Command m_autonomousCommand;
     private boolean m_wasEnabledInTeleop = false;
-    
+
     // private final boolean useVision = true;
     // // When true, runs Limelight MegaTag2 and publishes pose to SmartDashboard for Elastic (Field widget)
     // private final boolean publishLimelightField = true;
@@ -56,7 +56,7 @@ public final class Robot extends TimedRobot {
             System.out.print("; dy: " + Math.abs(bpa.pose.getY() - bpb.pose.getY()));
             System.out.println("; dt: " + Math.abs(bpa.pose.getRotation().getDegrees() - bpb.pose.getRotation().getDegrees()));
         }*/
-    
+
     }
 
     @Override
@@ -90,14 +90,17 @@ public final class Robot extends TimedRobot {
 
     @Override
     public void teleopInit() {
+        Launcher.getInstance().kFireFeederStartDelaySeconds = 0;
+
         m_robotContainer.intake.setAgitation(false);
 
         Launcher.getInstance().forcePitchDown();
-        
+
         LimelightHelpers.SetThrottle("limelight-a", 0);
         LimelightHelpers.SetThrottle("limelight-b", 0);
 
         if (m_autonomousCommand != null) CommandScheduler.getInstance().cancel(m_autonomousCommand);
+
         m_robotContainer.climber.resetZerosAndTargetState();
 
         if (clock.isRunning()) clock.reset(); else clock.start();
@@ -157,8 +160,8 @@ public final class Robot extends TimedRobot {
         /** Launcher: main flywheel */
         public static final int LAUNCHER = 49;
         public static final int LAUNCHER_FOLLOWER = 55;
-        public static final int PITCH_MOTOR = 50; 
-        public static final int PITCH_CANCODER = 38; 
+        public static final int PITCH_MOTOR = 50;
+        public static final int PITCH_CANCODER = 38;
         public static final int YAW_MOTOR = 40;
         public static final int YAW_CANCODER_11 = 52;
         public static final int YAW_CANCODER_12 = 54;

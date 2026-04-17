@@ -82,42 +82,8 @@ public final class Drive implements Subsystem {
             );
             return instance;
         }
-        //THIS IS ALL FOR PATHPLANNER I DIDN"T FIGURE IT OUT SO I COMMENTED IT.
-        //MAIN PROBLEM: Pathplanner wants a driveRobotRelative command and I don't think we have that.
 
-        /*
-    // Load the RobotConfig from the GUI settings. You should probably
-    // store this in your Constants file
-    RobotConfig config;
-    try{
-      config = RobotConfig.fromGUISettings();
-    } catch (Exception e) {
-      // Handle exception as needed
-      e.printStackTrace();
-    }
-
-    // Configure AutoBuilder last
-    AutoBuilder.configure(
-            this::getPose, // Robot pose supplier
-            this::resetPose, // Method to reset odometry (will be called if your auto has a starting pose)
-            this::getRobotRelativeSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
-            (speeds, feedforwards) -> driveRobotRelative(speeds), // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
-            new PPLTVController(0.02), // PPLTVController is the built in path following controller for differential drive trains
-            config, // The robot configuration
-            () -> {
-              // Boolean supplier that controls when the path will be mirrored for the red alliance
-              // This will flip the path being followed to the red side of the field.
-              // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
-
-              var alliance = DriverStation.getAlliance();
-              if (alliance.isPresent()) {
-                return alliance.get() == DriverStation.Alliance.Red;
-              }
-              return false;
-            },
-            this // Reference to this subsystem to set requirements
-    ); */
-        /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
+        /** SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
         private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
             new SysIdRoutine.Config(
                 null,        // Use default ramp rate (1 V/s)
@@ -330,11 +296,10 @@ public final class Drive implements Subsystem {
                 else if (bpa.rawFiducials[0].distToCamera > bpb.rawFiducials[0].distToCamera) bp = bpb;
                 else bp = bpa;
 
-                //System.out.println("Limelight-a X: " + bpa.pose.getX() + ", Y: " + bpa.pose.getY());
-                //System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
+                // System.out.println("Limelight-a X: " + bpa.pose.getX() + ", Y: " + bpa.pose.getY());
+                // System.out.println("id: " + bp.rawFiducials[0].id + "; limelight-" + (bp == bpa ? "a" : "b"));
                 double error = Math.pow(bp.rawFiducials[0].distToCamera, 2) / 50;
-                this.addVisionMeasurement(bp.pose, bp.timestampSeconds, MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 99999));
-
+                this.addVisionMeasurement(bp.pose, bp.timestampSeconds, MatBuilder.fill(Nat.N3(), Nat.N1(), error, error, 999999));
             }
         }
 
@@ -550,28 +515,28 @@ public final class Drive implements Subsystem {
                 .withDriveFrictionVoltage(kDriveFrictionVoltage);
 
         // Front Left
-        private static final Angle kFrontLeftEncoderOffset = Rotations.of(0.471924);
+        private static final Angle kFrontLeftEncoderOffset = Rotations.of(-0.5295);
         private static final boolean kFrontLeftSteerMotorInverted = true;
         private static final boolean kFrontLeftEncoderInverted = false;
         private static final Distance kFrontLeftXPos = Inches.of(12);
         private static final Distance kFrontLeftYPos = Inches.of(12);
 
         // Front Right
-        private static final Angle kFrontRightEncoderOffset = Rotations.of(0.070312);
+        private static final Angle kFrontRightEncoderOffset = Rotations.of(0.068);
         private static final boolean kFrontRightSteerMotorInverted = true;
         private static final boolean kFrontRightEncoderInverted = false;
         private static final Distance kFrontRightXPos = Inches.of(12);
         private static final Distance kFrontRightYPos = Inches.of(-12);
 
         // Back Left
-        private static final Angle kBackLeftEncoderOffset = Rotations.of(-0.6096);
+        private static final Angle kBackLeftEncoderOffset = Rotations.of(0.3945);
         private static final boolean kBackLeftSteerMotorInverted = true;
         private static final boolean kBackLeftEncoderInverted = false;
         private static final Distance kBackLeftXPos = Inches.of(-12);
         private static final Distance kBackLeftYPos = Inches.of(12);
 
         // Back Right
-        private static final Angle kBackRightEncoderOffset = Rotations.of(0.116943);
+        private static final Angle kBackRightEncoderOffset = Rotations.of(-0.8825);
         private static final boolean kBackRightSteerMotorInverted = true;
         private static final boolean kBackRightEncoderInverted = false;
         private static final Distance kBackRightXPos = Inches.of(-12);

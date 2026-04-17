@@ -38,7 +38,7 @@ public class ShooterKinematics {
     }
 
     public double getCableTensionFeedforward(Rotation2d theta) {
-        //this is the desmos form of the equasion \frac{-2h}{1+e^{-k\left(x-60\right)}}+h
+        // this is the desmos form of the equasion \frac{-2h}{1+e^{-k\left(x-60\right)}}+h
 
         return (-(LauncherConstants.cableTensionFeedforwardMagnitude * 2) /
         (1 + (Math.exp(-0.09 * (theta.getDegrees() - 60))))) + LauncherConstants.cableTensionFeedforwardMagnitude;
