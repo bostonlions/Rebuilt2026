@@ -53,10 +53,11 @@ public final class Intake extends SubsystemBase {
     private final DutyCycleOut krakenSpinDuty;
     private final boolean spinnerIsKraken;
 
-    private final double inPosition = 0.5; // can't deceed zero
-    private final double partialOut = 0.625; // for agitation
-    private final double partialIn = 0.8; // for agitation
-    private final double outPosition = 0.932; // can't exceed one
+    private final double inPosition = 0.35; // can't deceed zero
+    private final double outPosition = 0.822; // can't exceed one
+
+    private final double partialOut = inPosition + 0.1; // for agitation
+    private final double partialIn = outPosition - 0.1; // for agitation
 
     public static Intake getInstance() {
         if (instance == null) instance = new Intake();
@@ -67,7 +68,6 @@ public final class Intake extends SubsystemBase {
         spinnerIsKraken = INTAKE_SPINNER_USE_KRAKEN;
 
         extendCANcoder.getConfigurator().apply(new CANcoderConfiguration().withMagnetSensor(new MagnetSensorConfigs()
-            .withMagnetOffset(0.32)
             .withSensorDirection(SensorDirectionValue.Clockwise_Positive)
             .withAbsoluteSensorDiscontinuityPoint(1)));
 
@@ -103,16 +103,19 @@ public final class Intake extends SubsystemBase {
         extendMotor.getConfigurator().apply(new TalonFXConfiguration()
             .withCurrentLimits(new CurrentLimitsConfigs()
                 .withSupplyCurrentLimitEnable(true)
-                .withSupplyCurrentLimit(40)
-                .withSupplyCurrentLowerLimit(30)
-                .withSupplyCurrentLowerTime(0.1))
+                .withSupplyCurrentLimit(30) // was 40
+                .withSupplyCurrentLowerLimit(15)  // was 30
+                .withSupplyCurrentLowerTime(0.1)
+                //.withStatorCurrentLimitEnable(true)
+                //.withStatorCurrentLimit(60))
+            )
             .withSlot0(new Slot0Configs()
-                .withKP(2.00)
-                .withKI(0.04)
-                .withKD(0.012)
-                .withKV(0.12)
-                .withKA(0.01)
-                .withKS(0.1))
+                .withKP(2)// was 2
+                .withKI(0.04) // was .04
+                .withKD(0.012) // was .012
+                .withKV(0.12) // was .12
+                .withKA(0.01) // was .01
+                .withKS(0.05)) // was .05
             .withMotionMagic(new MotionMagicConfigs()
                 .withMotionMagicCruiseVelocity(14)
                 .withMotionMagicAcceleration(11))
@@ -122,7 +125,7 @@ public final class Intake extends SubsystemBase {
             .withFeedback(new FeedbackConfigs()
                 .withFeedbackRemoteSensorID(extendCANcoder.getDeviceID())
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
-                .withRotorToSensorRatio(3 * 48 / 16.0)
+                .withRotorToSensorRatio(9)
                 .withSensorToMechanismRatio(1)));
 
         // Force the position into the 0-1 range, in case the initial reading is <0

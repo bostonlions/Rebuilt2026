@@ -99,9 +99,9 @@ public final class Launcher extends SubsystemBase {
             .withInverted(InvertedValue.CounterClockwise_Positive));
 
     // for the mode where we shoot fixed:
-    private double simpleLaunchRpm = 1800.0;
-    private double simpleLaunchPitch = 65.0;
-    private double simpleLaunchYaw = 0.0;
+    private double simpleLaunchRpm = 2500;
+    private double simpleLaunchPitch = 65;
+    private double simpleLaunchYaw = 0;
 
     private boolean toggledOn = false;
     private boolean dynamicYaw;
@@ -127,8 +127,8 @@ public final class Launcher extends SubsystemBase {
         feeder_roller.getConfigurator().apply(feederMotorConfig);
 
         // Don't configure can coder offsets here; enter offsets into c11 and c12 offset constants
-        yaw12cancoder.getConfigurator().apply(new MagnetSensorConfigs().withMagnetOffset(0).withAbsoluteSensorDiscontinuityPoint(1));
-        yaw11cancoder.getConfigurator().apply(new MagnetSensorConfigs().withMagnetOffset(0).withAbsoluteSensorDiscontinuityPoint(1));
+        yaw12cancoder.getConfigurator().apply(new MagnetSensorConfigs().withAbsoluteSensorDiscontinuityPoint(1));
+        yaw11cancoder.getConfigurator().apply(new MagnetSensorConfigs().withAbsoluteSensorDiscontinuityPoint(1));
         yaw11cancoder.getAbsolutePosition().waitForUpdate(0.25);
         yaw12cancoder.getAbsolutePosition().waitForUpdate(0.25);
         yawMotor.setPosition(-calcYawDegrees() * LauncherConstants.yawGearRatio / 360.);
@@ -349,8 +349,8 @@ public final class Launcher extends SubsystemBase {
 
         // 3. Determine Active Target (Hub vs Hurling)
         hurling = blueAlliance ?
-            (projectedPose.getX() > 4.625594 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192)) : //TODO: CHECK
-            (projectedPose.getX() < 11.915394 && !MathUtil.isNear(4.034536, projectedPose.getY(), 1.2192));
+            (projectedPose.getX() > 4.625594) : //TODO: CHECK
+            (projectedPose.getX() < 11.915394);
 
         Translation2d activeTarget = hurling ?
             new Translation2d(hurlTargetXZ.getX(), projectedPose.getY() > 4.034536 ? 6.0519945 : 2.017268) :
@@ -655,9 +655,9 @@ public final class Launcher extends SubsystemBase {
         );
         trimmer.add(
             "Launcher PID",
-            "Launcher P",
-            () -> launchP,
-            (up) -> {launchP = Trimmer.increment(launchP, 0.001, 0.2, up); setLaunchMotorConfig();}
+            "Yaw P",
+            () -> yawP,
+            (up) -> {yawP = Trimmer.increment(yawP, 0.001, 0.2, up); setLaunchMotorConfig();}
         );
         trimmer.add(
             "Launcher PID",

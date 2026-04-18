@@ -101,7 +101,73 @@ public final class Auton extends SubsystemBase {
                     new InstantCommand(() -> intake.toggleSpin(), intake),
                     new InstantCommand(() -> intake.setAgitation(false), intake),
                     new InstantCommand(() -> launcher.setMode(Launcher.Mode.OFF), launcher))
-            ))
+            )),
+        entry("3: LeftMiddleAndDepo", new ParallelCommandGroup(
+                zeroGyro(),                                                                                // brake to prevent drifting
+                followPathCommand("GoToMidAndBack_Left", true),
+                new WaitCommand(.5).andThen(
+                    new InstantCommand(() -> intake.setExtension(true), intake),
+                    new InstantCommand(() -> intake.toggleSpin(), intake),
+                    new WaitCommand(4),
+                    new InstantCommand(() -> intake.toggleSpin(), intake)
+                )
+            ).andThen(
+                new ParallelCommandGroup(
+                    followPathCommand("LeftToDepot", false).andThen(() -> Drivetrain.getInstance().setControl(SwerveConstants.brake)),
+                    new InstantCommand(() -> launcher.setMode(Launcher.Mode.STANDBY), launcher)
+                        .andThen(new WaitCommand(1),
+                        new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE), launcher),
+                        new InstantCommand(() -> intake.setAgitation(true), intake),
+                        new WaitCommand(2.5),
+                        new InstantCommand(() -> intake.setAgitation(false), intake),
+                        new InstantCommand(() -> intake.toggleSpin(), intake),
+                        new WaitCommand(3),
+                        new InstantCommand(() -> intake.toggleSpin(), intake),
+                        new InstantCommand(() -> intake.setAgitation(true), intake))
+                )
+            )),
+        entry("4: Twice Mid and Back Left NEW", new ParallelCommandGroup(
+            zeroGyro(),                                                                                // brake to prevent drifting
+            followPathCommand("GoToMidAndBack_Left", true).andThen(() -> Drivetrain.getInstance().setControl(SwerveConstants.brake)),
+            new WaitCommand(1).andThen(
+                new InstantCommand(() -> intake.setExtension(true), intake),
+                new InstantCommand(() -> intake.toggleSpin(), intake),
+                new WaitCommand(3.5),
+                new InstantCommand(() -> intake.toggleSpin(), intake)
+                )
+            ).andThen(new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE), launcher),
+                new InstantCommand(() -> intake.toggleSpin(), intake),
+                new InstantCommand(() -> intake.setAgitation(true), intake),
+                new WaitCommand(5.5),
+                new InstantCommand(() -> intake.toggleSpin(), intake),
+                new InstantCommand(() -> intake.setAgitation(false), intake)
+            ).andThen(
+                new ParallelCommandGroup(
+                    followPathCommand("LeftSecondPass", false).andThen(() -> Drivetrain.getInstance().setControl(SwerveConstants.brake)),
+                    new InstantCommand(() -> launcher.setMode(Launcher.Mode.OFF), launcher).andThen(
+                        new WaitCommand(.2),
+                        new InstantCommand(() -> intake.setExtension(true), intake),
+                        new InstantCommand(() -> intake.toggleSpin(), intake),
+                        new WaitCommand(3.3),
+                        new InstantCommand(() -> intake.toggleSpin(), intake)
+                        )
+                    )
+            ).andThen(new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE), launcher),
+                    new InstantCommand(() -> intake.toggleSpin(), intake),
+                    new InstantCommand(() -> intake.setAgitation(true), intake))),
+        entry("5: Mid Depot", new ParallelCommandGroup(
+            zeroGyro(),                                                                                // brake to prevent drifting
+            followPathCommand("MidDepot", true),
+            new WaitCommand(1).andThen(
+                new InstantCommand(() -> intake.setExtension(true), intake),
+                new InstantCommand(() -> intake.toggleSpin(), intake)
+                )
+            ).andThen(
+                new WaitCommand(1),
+                new InstantCommand(() -> launcher.setMode(Launcher.Mode.FIRE), launcher),
+                new InstantCommand(() -> intake.setAgitation(true), intake)
+            )
+        )
         // entry("1: Shoot from left corner of hub", Commands.sequence(
         //     new InstantCommand(() -> launcher.simpleToggle(1776, 75, -45)),
         //     sleep(4), new InstantCommand(() -> intake.setSpinner(true), intake), sleep(4),

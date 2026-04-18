@@ -7,7 +7,7 @@ public class LauncherConstants {
         // --- Turret & Yaw Constants ---
         // new wire mgmt & turret: with no guard attached to the launch wheel, [-135 -> 225] prevents
         // the wire harness from touching the tread (which would grab it!)
-        public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-125.0, 215.0);
+        public static final Pair<Double, Double> yawBounds = new Pair<Double, Double>(-125.0, 235.0);
         public static final double c11Offset = 0.6926; // 11-tooth cancoder value at 0 degrees
         public static final double c12Offset = 0.7485; // 12-tooth cancoder value at 0 degrees
         public static final double yawGearRatio = 35; // rotations of yaw motor to give a full rotation of turret
@@ -57,7 +57,7 @@ public class LauncherConstants {
         public static final double kPitchOffset = 0; // degrees to offset pitch
         public static final double kRPMScaleFactor = 1.425; // scale to offset velocity
         public static final double projectionTime = 0.07; // seconds into the future to predict position
-        public static final double fudgeFactorLinearVelocityProjection = 4;
+        public static final double fudgeFactorLinearVelocityProjection = 3;
         public static final double fudgeFactorYawAdjustment = 1;
         public static final double yawOffset = 0; // degrees
         public static final double kRPMTolerance = 0.05; // tolerance when checking flywheel speed is within range
